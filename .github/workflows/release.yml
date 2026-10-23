@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 已有版本标签，例如 v0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+  CGO_ENABLED: '0'
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: darwin
+            arch: arm64
+          - runner: macos-15-intel
+            platform: darwin
+            arch: amd64
+          - runner: windows-2025
+            platform: windows
+            arch: amd64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: 检出版本标签
+        uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          persist-credentials: false
+
+      - name: 安装 Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: 核对发布版本与更新签名配置
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+        run: |
+          test "$RELEASE_TAG" = "v$(node -p 'require("./mygo.json").version')"
+          test -n "$MYGO_UPDATER_PRIVATE_KEY"
+
+      - name: 导入 macOS 签名证书
+        if: runner.os == 'macOS'
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          test -n "$MACOS_CERTIFICATE_P12"
+          test -n "$MACOS_CERTIFICATE_PASSWORD"
+          umask 077
+          keychain="$RUNNER_TEMP/gopaste.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+          printf '%s' "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/gopaste.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/gopaste.p12" -k "$keychain" -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain"
+          security find-certificate -a -p "$keychain" > "$RUNNER_TEMP/gopaste.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign -k "$keychain" "$RUNNER_TEMP/gopaste.pem"
+
+      - name: 运行测试
+        run: go test ./...
+
+      - name: 构建 macOS 应用与更新包
+        if: runner.os == 'macOS'
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+          RELEASE_ARCH: ${{ matrix.arch }}
+        run: |
+          go run ./tools/package -arch "$RELEASE_ARCH" -o "build/darwin-$RELEASE_ARCH" -release
+          codesign --verify --deep --strict "build/darwin-$RELEASE_ARCH/GoPaste.app"
+
+      - name: 构建 Windows Setup 与更新包
+        if: runner.os == 'Windows'
+        env:
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+        run: go tool mygo build -platform windows/amd64 -o build
+
+      - name: 保存发布文件
+        uses: actions/upload-artifact@v7
+        with:
+          name: GoPaste-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            build/${{ matrix.platform }}-${{ matrix.arch }}/*.tar.gz
+            build/${{ matrix.platform }}-${{ matrix.arch }}/update-*.json
+            build/${{ matrix.platform }}-${{ matrix.arch }}/* Setup *.exe
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: 下载三个平台的发布文件
+        uses: actions/download-artifact@v8
+        with:
+          pattern: GoPaste-*
+          merge-multiple: true
+          path: release
+
+      - name: 发布 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          支持 macOS Apple Silicon、macOS Intel 和 Windows x64
+
+          - macOS：下载对应架构的 `.tar.gz`，解压后将 `GoPaste.app` 放入应用程序目录，自动粘贴需要辅助功能权限
+          - Windows：下载并运行 `GoPaste Setup` 安装包
+          - `update-*.json` 和 Windows `.tar.gz` 归档用于自动更新
+
+          默认快捷键：macOS `Command+Shift+V`，Windows `Ctrl+Shift+V`
+
+          macOS 应用使用本地证书签名，未经过 Apple 公证
+          NOTES
+          gh release create "$RELEASE_TAG" release/* --verify-tag --title "GoPaste $RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
