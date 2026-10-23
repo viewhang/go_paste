@@ -22,6 +22,7 @@ func TestLocalizedViews(t *testing.T) {
 			a.form = form
 			a.settings.CustomTabs = []types.Tab{{ID: "user", Name: "我的工作"}}
 			a.records = []*types.Record{{ID: "one", Kind: types.KindText, Text: "用户复制的内容"}}
+			initTestStore(t, a)
 			w, h := panelWidth, panelHeight
 			if form == formBar {
 				w, h = 1180, barHeight
@@ -56,6 +57,7 @@ func TestLocalizedEditorAndShortcuts(t *testing.T) {
 	a := NewApp()
 	a.settings = types.DefaultSettings()
 	a.form = formPanel
+	initTestStore(t, a)
 	a.newTab(true)
 	a.prompt.value = "我的智能列表"
 	tt := ui.NewTester(a.view, panelWidth, panelHeight)

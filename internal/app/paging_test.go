@@ -13,6 +13,26 @@ import (
 	"gopaste/internal/types"
 )
 
+// initTestStore 将界面测试的设置与有序记录写入临时数据库并加载摘要索引
+func initTestStore(t *testing.T, a *App) {
+	t.Helper()
+	st, err := store.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { st.Close() })
+	if err := st.SetSettings(a.settings); err != nil {
+		t.Fatal(err)
+	}
+	for i := len(a.records) - 1; i >= 0; i-- {
+		if _, _, err := st.Capture(a.records[i], nil, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	a.st = st
+	a.reload()
+}
+
 // TestPagedHistoryActions 验证跨页展示、完整内容复制与预览及摘要缓存上限
 func TestPagedHistoryActions(t *testing.T) {
 	st, err := store.Open(t.TempDir())

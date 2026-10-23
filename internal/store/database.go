@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"unicode"
 
@@ -65,9 +64,6 @@ func (s *Store) openDatabase() (err error) {
 				if r.Hash == "" {
 					r.Hash = recordHash(r)
 				}
-				if r.PreviewState == "loading" {
-					r.PreviewState = ""
-				}
 				statement, e := recordStatement(r, int64(len(idx.Records)-i))
 				if e != nil {
 					return e
@@ -118,6 +114,14 @@ func (s *Store) openDatabase() (err error) {
 			return err
 		}
 	}
+	// 重置中断的链接预览以便下次调度
+	if _, err = s.db.Execute(ctx, `UPDATE records SET
+		meta=json_remove(meta,'$.previewState'),
+		summary=json_remove(summary,'$.previewState'),
+		payload=json_remove(payload,'$.previewState')
+		WHERE json_extract(meta,'$.previewState')='loading'`); err != nil {
+		return err
+	}
 	rows, err = s.db.Query(ctx, "SELECT meta, position FROM records ORDER BY position DESC")
 	if err != nil {
 		return err
@@ -131,25 +135,6 @@ func (s *Store) openDatabase() (err error) {
 		s.records = append(s.records, r)
 		s.byID[r.ID] = r
 		s.positions[r.ID] = row[1].(int64)
-	}
-	// 中断的链接任务允许下次启动重新调度
-	for _, r := range slices.Clone(s.records) {
-		if r.PreviewState == "loading" {
-			full, e := s.getLocked(r.ID)
-			if e != nil {
-				return e
-			}
-			full.PreviewState = ""
-			next := slices.Clone(s.records)
-			for i, item := range next {
-				if item.ID == r.ID {
-					next[i] = full
-				}
-			}
-			if err = s.commitLocked(next, nil); err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }

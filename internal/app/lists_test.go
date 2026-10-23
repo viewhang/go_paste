@@ -96,9 +96,6 @@ func TestManualLists(t *testing.T) {
 			if len(a.tabs()) != 2 {
 				t.Fatal("全部入口被删除")
 			}
-			if err := st.Flush(); err != nil {
-				t.Fatal(err)
-			}
 			reopened, err := store.Open(st.Dir())
 			if err != nil {
 				t.Fatal(err)
@@ -174,9 +171,6 @@ func TestDragToManualLists(t *testing.T) {
 					} else if len(a.vis) != 0 {
 						t.Fatal("跨列表移动后原列表仍显示该记录")
 					}
-				}
-				if err := st.Flush(); err != nil {
-					t.Fatal(err)
 				}
 				reopened, err := store.Open(st.Dir())
 				if err != nil {
@@ -276,9 +270,6 @@ func TestSmartLists(t *testing.T) {
 	if !a.currentTab().MatchAny || len(a.vis) != 3 {
 		t.Fatal("任意满足未收录仅符合一条规则的记录")
 	}
-	if err := st.Flush(); err != nil {
-		t.Fatal(err)
-	}
 	reopened, err := store.Open(st.Dir())
 	if err != nil {
 		t.Fatal(err)
@@ -290,64 +281,6 @@ func TestSmartLists(t *testing.T) {
 	}
 }
 
-// TestSmartListMatchingModes 验证全部满足与任意满足的区别及无规则时的匹配结果
-func TestSmartListMatchingModes(t *testing.T) {
-	tab := types.Tab{ID: "smart", Smart: true, Rules: []types.ListRule{
-		{Field: types.RuleKind, Value: string(types.KindFile)},
-		{Field: types.RuleKeyword, Value: "合同"},
-	}}
-	for _, tc := range []struct {
-		record types.Record
-		all    bool
-		any    bool
-	}{
-		{types.Record{Kind: types.KindFile, Files: []types.FileRef{{Name: "合同.pdf"}}}, true, true},
-		{types.Record{Kind: types.KindFile, Files: []types.FileRef{{Name: "预算.pdf"}}}, false, true},
-		{types.Record{Kind: types.KindText, Text: "合同"}, false, true},
-		{types.Record{Kind: types.KindText, Text: "其他"}, false, false},
-	} {
-		for _, any := range []bool{false, true} {
-			tab.MatchAny = any
-			want := tc.all
-			if any {
-				want = tc.any
-			}
-			if got := listMatches(tab, &tc.record); got != want {
-				t.Errorf("任意满足 %v，记录 %v：得到 %v，期望 %v", any, tc.record, got, want)
-			}
-		}
-	}
-	tab.Rules = nil
-	for _, any := range []bool{false, true} {
-		tab.MatchAny = any
-		if listMatches(tab, &types.Record{}) {
-			t.Fatal("无规则的智能列表不应收录记录")
-		}
-	}
-}
-
-// TestListRules 验证内容类型、扩展名与关键词的匹配范围
-func TestListRules(t *testing.T) {
-	for _, tc := range []struct {
-		rule types.ListRule
-		rec  types.Record
-		want bool
-	}{
-		{types.ListRule{Field: types.RuleKind, Value: "image"}, types.Record{Kind: types.KindImage}, true},
-		{types.ListRule{Field: types.RuleKind, Value: "file"}, types.Record{Kind: types.KindText}, false},
-		{types.ListRule{Field: types.RuleExtension, Value: ".pdf， docx"}, types.Record{Files: []types.FileRef{{Name: "报告.DOCX"}}}, true},
-		{types.ListRule{Field: types.RuleExtension, Value: "png"}, types.Record{Kind: types.KindImage, ImageFormat: "png"}, true},
-		{types.ListRule{Field: types.RuleExtension, Value: "jpg"}, types.Record{Kind: types.KindImage, ImageFormat: "jpeg"}, true},
-		{types.ListRule{Field: types.RuleExtension, Value: "pdf"}, types.Record{Files: []types.FileRef{{Name: "目录.pdf", Dir: true}}}, false},
-		{types.ListRule{Field: types.RuleKeyword, Value: "project"}, types.Record{Text: "PROJECT notes"}, true},
-		{types.ListRule{Field: types.RuleKeyword, Value: "合同"}, types.Record{Files: []types.FileRef{{Name: "合同.pdf"}}}, true},
-	} {
-		if got := ruleMatches(tc.rule, &tc.rec); got != tc.want {
-			t.Errorf("规则 %v 匹配 %v 得到 %v", tc.rule, tc.rec, got)
-		}
-	}
-}
-
 // TestBarAddListPosition 验证两种主题的新增入口紧随最后一个列表
 func TestBarAddListPosition(t *testing.T) {
 	for _, theme := range []int{themeClassic, themeGlass} {
@@ -355,6 +288,7 @@ func TestBarAddListPosition(t *testing.T) {
 			a := NewApp()
 			a.settings = types.DefaultSettings()
 			a.settings.Theme, a.settings.CustomTabs = theme, tabs
+			initTestStore(t, a)
 			tt := ui.NewTester(a.view, 1180, barHeight)
 			last := "全部"
 			if len(tabs) > 0 {
@@ -379,6 +313,7 @@ func TestBarAddListVisible(t *testing.T) {
 	for i := range 20 {
 		a.settings.CustomTabs = append(a.settings.CustomTabs, types.Tab{ID: fmt.Sprint(i), Name: "较长的列表名称"})
 	}
+	initTestStore(t, a)
 	tt := ui.NewTester(a.view, 760, barHeight)
 	for _, choice := range []string{"普通列表", "智能列表"} {
 		tt.Scroll(500, 24, 10000, 0)

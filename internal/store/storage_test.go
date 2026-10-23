@@ -344,7 +344,7 @@ func TestStorageCorruptIndex(t *testing.T) {
 	}
 }
 
-// TestStorageConcurrentCommits 验证并发保存、更新和刷新后索引完整且引用文件均存在
+// TestStorageConcurrentCommits 验证并发保存、更新和回收后记录完整且引用文件均存在
 func TestStorageConcurrentCommits(t *testing.T) {
 	s := storageTest(t, 1)
 	var wg sync.WaitGroup
@@ -358,9 +358,6 @@ func TestStorageConcurrentCommits(t *testing.T) {
 			s.Update(r.ID, func(r *types.Record) { r.Source.AppName = "测试来源" })
 			if n := s.CollectGarbage(); n != 0 {
 				t.Errorf("并发回收删除了仍有引用的资源：%d", n)
-			}
-			if err := s.Flush(); err != nil {
-				t.Error(err)
 			}
 		})
 	}

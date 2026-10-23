@@ -92,6 +92,60 @@ func TestDatabaseMigrationAndSummaries(t *testing.T) {
 	}
 }
 
+// TestPendingPreviewRecovery 验证重启统一重置中断预览且保留内容、顺序与已完成状态
+func TestPendingPreviewRecovery(t *testing.T) {
+	s := storageTest(t, 1)
+	for _, state := range []string{"loading", "done", ""} {
+		captureTest(t, s, &types.Record{Kind: types.KindLink, Text: "预览内容 " + state, URL: "https://example.com/" + state, PreviewState: state}, nil, nil)
+	}
+	want := s.List()
+	ids := make([]string, len(want))
+	states := make(map[string]string, len(want))
+	for i, r := range want {
+		if r.PreviewState == "loading" {
+			r.PreviewState = ""
+		}
+		ids[i], states[r.ID] = r.ID, r.PreviewState
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(s.Dir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	if got := reopened.List(); !reflect.DeepEqual(got, want) {
+		t.Fatal("重启未恢复预览状态或改变了记录内容与顺序")
+	}
+	summaries, err := reopened.Summaries(ids)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, records := range [][]*types.Record{reopened.records, summaries} {
+		if len(records) != len(want) {
+			t.Fatal("重启丢失元数据或摘要")
+		}
+		for _, r := range records {
+			if r.PreviewState != states[r.ID] {
+				t.Fatal("元数据或摘要中的预览状态与原文不一致")
+			}
+		}
+	}
+	pending, err := reopened.PendingLinks()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pending) != 2 {
+		t.Fatal("中断预览未重新加入待处理记录")
+	}
+	for _, r := range pending {
+		if r.PreviewState != "" {
+			t.Fatal("已完成预览被重新加入待处理记录")
+		}
+	}
+}
+
 // TestDatabaseTransactionRollback 验证事务中途失败时不产生部分写入
 func TestDatabaseTransactionRollback(t *testing.T) {
 	s := storageTest(t, 1)
@@ -311,5 +365,81 @@ func TestSettingsWriteRollback(t *testing.T) {
 				t.Fatal("设置保存成功后未正确保留历史")
 			}
 		})
+	}
+}
+
+// TestSmartListMatchingModes 验证全部满足与任意满足的区别及无规则时的匹配结果
+func TestSmartListMatchingModes(t *testing.T) {
+	tab := types.Tab{ID: "smart", Smart: true, Rules: []types.ListRule{
+		{Field: types.RuleKind, Value: string(types.KindFile)},
+		{Field: types.RuleKeyword, Value: "合同"},
+	}}
+	for _, tc := range []struct {
+		record types.Record
+		all    bool
+		any    bool
+	}{
+		{types.Record{Kind: types.KindFile, Files: []types.FileRef{{Name: "合同.pdf"}}}, true, true},
+		{types.Record{Kind: types.KindFile, Files: []types.FileRef{{Name: "预算.pdf"}}}, false, true},
+		{types.Record{Kind: types.KindText, Text: "合同"}, false, true},
+		{types.Record{Kind: types.KindText, Text: "其他"}, false, false},
+	} {
+		s := storageTest(t, 1)
+		captureTest(t, s, &tc.record, nil, nil)
+		for _, any := range []bool{false, true} {
+			tab.MatchAny = any
+			want := tc.all
+			if any {
+				want = tc.any
+			}
+			rows, err := s.IDs(tab, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := len(rows) != 0; got != want {
+				t.Errorf("任意满足 %v，记录 %v：得到 %v，期望 %v", any, tc.record, got, want)
+			}
+		}
+	}
+	s := storageTest(t, 1)
+	captureTest(t, s, &types.Record{Kind: types.KindText, Text: "合同"}, nil, nil)
+	tab.Rules = nil
+	for _, any := range []bool{false, true} {
+		tab.MatchAny = any
+		rows, err := s.IDs(tab, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(rows) != 0 {
+			t.Fatal("无规则的智能列表不应收录记录")
+		}
+	}
+}
+
+// TestListRules 验证内容类型、扩展名与关键词的匹配范围
+func TestListRules(t *testing.T) {
+	for _, tc := range []struct {
+		rule types.ListRule
+		rec  types.Record
+		want bool
+	}{
+		{types.ListRule{Field: types.RuleKind, Value: "image"}, types.Record{Kind: types.KindImage}, true},
+		{types.ListRule{Field: types.RuleKind, Value: "file"}, types.Record{Kind: types.KindText}, false},
+		{types.ListRule{Field: types.RuleExtension, Value: ".pdf， docx"}, types.Record{Files: []types.FileRef{{Name: "报告.DOCX"}}}, true},
+		{types.ListRule{Field: types.RuleExtension, Value: "png"}, types.Record{Kind: types.KindImage, ImageFormat: "png"}, true},
+		{types.ListRule{Field: types.RuleExtension, Value: "jpg"}, types.Record{Kind: types.KindImage, ImageFormat: "jpeg"}, true},
+		{types.ListRule{Field: types.RuleExtension, Value: "pdf"}, types.Record{Files: []types.FileRef{{Name: "目录.pdf", Dir: true}}}, false},
+		{types.ListRule{Field: types.RuleKeyword, Value: "project"}, types.Record{Text: "PROJECT notes"}, true},
+		{types.ListRule{Field: types.RuleKeyword, Value: "合同"}, types.Record{Files: []types.FileRef{{Name: "合同.pdf"}}}, true},
+	} {
+		s := storageTest(t, 1)
+		captureTest(t, s, &tc.rec, nil, nil)
+		rows, err := s.IDs(types.Tab{Smart: true, Rules: []types.ListRule{tc.rule}}, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := len(rows) != 0; got != tc.want {
+			t.Errorf("规则 %v 匹配 %v 得到 %v", tc.rule, tc.rec, got)
+		}
 	}
 }

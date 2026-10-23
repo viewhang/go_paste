@@ -67,6 +67,7 @@ func TestCustomPreviewShortcut(t *testing.T) {
 		a.settings = types.DefaultSettings()
 		a.form = form
 		a.records = []*types.Record{{ID: "preview", Kind: types.KindText, Text: "hello world"}}
+		initTestStore(t, a)
 		tt := ui.NewTester(a.view, 1180, panelHeight)
 		tt.Type("hello")
 		tt.Key(0, ui.KeySpace)
@@ -79,7 +80,7 @@ func TestCustomPreviewShortcut(t *testing.T) {
 		}
 		tt.Frame()
 		tt.Key(ui.Cmd|ui.Shift, ui.KeyP)
-		if !a.preview || a.detail != a.records[0] {
+		if !a.preview || a.detail == nil || a.detail.ID != a.records[0].ID {
 			t.Fatalf("形态 %d 的自定义预览快捷键未生效：预览 %v，记录 %v，结果 %d，按键 %q，动作 %v", form, a.preview, a.detail, len(a.vis), a.shortcutAccel("preview"), a.acted)
 		}
 	}
@@ -95,6 +96,7 @@ func TestSpacePreviewFromSearch(t *testing.T) {
 			{ID: "first", Kind: types.KindText, Text: "hello world"},
 			{ID: "second", Kind: types.KindText, Text: "second record"},
 		}
+		initTestStore(t, a)
 		tt := ui.NewTester(a.view, 1180, panelHeight)
 		next := ui.KeyDown
 		if form == formBar {
@@ -103,7 +105,7 @@ func TestSpacePreviewFromSearch(t *testing.T) {
 		tt.Key(0, next)
 		for range 2 {
 			tt.TypeKey(0, ui.KeySpace, " ")
-			if !a.preview || a.detail != a.records[1] || a.query != "" {
+			if !a.preview || a.detail == nil || a.detail.ID != a.records[1].ID || a.query != "" {
 				t.Fatalf("形态 %d 的空格未预览当前记录：预览 %v，关键词 %q，选择 %d", form, a.preview, a.query, a.sel)
 			}
 			tt.Key(0, ui.KeyEscape)

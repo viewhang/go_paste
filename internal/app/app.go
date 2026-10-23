@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -269,48 +268,15 @@ func (a *App) filtered() []*types.Record {
 	if a.filterValid && a.filterQuery == a.query && a.filterTab == a.tab {
 		return a.vis
 	}
-	tab := a.currentTab()
-	q := strings.ToLower(strings.TrimSpace(a.query))
-	var out []*types.Record
-	if a.st != nil {
-		var err error
-		out, err = a.st.IDs(tab, q)
-		if err != nil {
-			a.storageError(err)
-		}
-		a.pages = make(map[int][]*types.Record)
-		a.pageOrder = nil
-	} else {
-		for _, r := range a.records {
-			if !listMatches(tab, r) {
-				continue
-			}
-			if q != "" && !matches(r, q) {
-				continue
-			}
-			out = append(out, r)
-		}
+	out, err := a.st.IDs(a.currentTab(), a.query)
+	if err != nil {
+		a.storageError(err)
 	}
+	a.pages = make(map[int][]*types.Record)
+	a.pageOrder = nil
 	a.vis = out
 	a.filterValid, a.filterQuery, a.filterTab = true, a.query, a.tab
 	return out
-}
-
-// matches 匹配记录内容、来源应用及文件名称与路径
-func matches(r *types.Record, q string) bool {
-	if strings.Contains(strings.ToLower(r.Text), q) ||
-		strings.Contains(strings.ToLower(r.Title), q) ||
-		strings.Contains(strings.ToLower(r.URL), q) ||
-		strings.Contains(strings.ToLower(r.Color), q) ||
-		strings.Contains(strings.ToLower(r.Source.AppName), q) {
-		return true
-	}
-	for _, f := range r.Files {
-		if strings.Contains(strings.ToLower(f.Name), q) || strings.Contains(strings.ToLower(f.Path), q) {
-			return true
-		}
-	}
-	return false
 }
 
 // selected 返回键盘选中的卡片摘要
@@ -323,9 +289,6 @@ func (a *App) selected() *types.Record {
 
 // recordAt 按五十条一页读取卡片摘要并淘汰较早访问的分页
 func (a *App) recordAt(i int) *types.Record {
-	if a.st == nil {
-		return a.vis[i]
-	}
 	// pageSize 设置每页摘要数量
 	const pageSize = 50
 	page := i / pageSize
@@ -691,9 +654,4 @@ func (a *App) hotkeyAccel() string {
 		return a.settings.Hotkey
 	}
 	return types.DefaultHotkey
-}
-
-// hotkeyLabel spells the shortcut the platform's way, for the panel's text.
-func (a *App) hotkeyLabel() string {
-	return prettyHotkey(a.hotkeyAccel())
 }

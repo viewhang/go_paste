@@ -51,6 +51,7 @@ func TestBarResizeLayout(t *testing.T) {
 		{ID: "second", Kind: types.KindText, Text: "resize-next"},
 	}
 	a.records = a.vis
+	initTestStore(t, a)
 	tt := ui.NewTester(func(c *ui.Context) { a.barView(c, pal(c)) }, 1180, barHeight)
 	for _, height := range []int{barHeight, 400, barHeight, barHeight + barPreview} {
 		a.preview = height == barHeight+barPreview
