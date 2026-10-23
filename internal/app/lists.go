@@ -27,48 +27,6 @@ func (a *App) currentTab() types.Tab {
 	return tabs[0]
 }
 
-// listMatches 按普通列表归属或智能列表的全部、任意规则筛选记录
-func listMatches(tab types.Tab, r *types.Record) bool {
-	if tab.ID == "all" {
-		return true
-	}
-	if !tab.Smart {
-		return r.ListID == tab.ID
-	}
-	for _, rule := range tab.Rules {
-		matched := ruleMatches(rule, r)
-		if tab.MatchAny && matched {
-			return true
-		}
-		if !tab.MatchAny && !matched {
-			return false
-		}
-	}
-	return !tab.MatchAny && len(tab.Rules) > 0
-}
-
-// ruleMatches 按内容类型、文件扩展名或关键词匹配记录
-func ruleMatches(rule types.ListRule, r *types.Record) bool {
-	switch rule.Field {
-	case types.RuleKind:
-		return string(r.Kind) == rule.Value
-	case types.RuleKeyword:
-		return matches(r, strings.ToLower(rule.Value))
-	case types.RuleExtension:
-		for _, ext := range ruleExtensions(rule.Value) {
-			if r.Kind == types.KindImage && (strings.EqualFold(r.ImageFormat, ext) || r.ImageFormat == "jpeg" && ext == "jpg") {
-				return true
-			}
-			for _, f := range r.Files {
-				if !f.Dir && strings.HasSuffix(strings.ToLower(f.Name), "."+ext) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 // ruleExtensions 解析由逗号或空白分隔的文件扩展名
 func ruleExtensions(value string) []string {
 	var extensions []string

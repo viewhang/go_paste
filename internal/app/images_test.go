@@ -141,6 +141,7 @@ func TestCompactDragPreview(t *testing.T) {
 				a := NewApp()
 				a.form, a.settings = form, types.DefaultSettings()
 				a.records = []*types.Record{{ID: "drag", Kind: types.KindText, Text: "拖拽预览内容"}}
+				initTestStore(t, a)
 				w, h := panelWidth, panelHeight
 				if form == formBar {
 					w, h = 1180, barHeight

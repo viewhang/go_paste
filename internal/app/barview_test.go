@@ -22,6 +22,7 @@ func TestPasteFailureKeepsSearch(t *testing.T) {
 				ID: "missing", Kind: types.KindFile, Text: "needle",
 				Files: []types.FileRef{{Path: filepath.Join(t.TempDir(), "missing.txt")}},
 			}}
+			initTestStore(t, a)
 			tt := ui.NewTester(a.view, 1180, panelHeight)
 			tt.Type("needle")
 			tt.Key(0, ui.KeyEnter)
@@ -68,6 +69,7 @@ func TestBarSearchInput(t *testing.T) {
 		{ID: "target", Kind: types.KindText, Text: "目标记录 needle"},
 		{ID: "other", Kind: types.KindText, Text: "其他记录"},
 	}
+	initTestStore(t, a)
 	a.search.Focus()
 	tt := ui.NewTester(a.view, panelWidth, panelHeight)
 	for _, form := range []int{formBar, formPanel, formBar} {
@@ -81,7 +83,7 @@ func TestBarSearchInput(t *testing.T) {
 			t.Fatalf("切换到形态 %d 后搜索框未自动获得输入焦点", form)
 		}
 		tt.Type("needle")
-		if a.query != "needle" || len(a.vis) != 1 || a.vis[0] != a.records[0] {
+		if a.query != "needle" || len(a.vis) != 1 || a.vis[0].ID != a.records[0].ID {
 			t.Fatalf("搜索未生效：关键词 %q，结果 %d 条", a.query, len(a.vis))
 		}
 		tt.Key(ui.Cmd, ui.KeyA)
@@ -98,6 +100,7 @@ func TestPanelDirectionKeys(t *testing.T) {
 		{ID: "second", Kind: types.KindText, Text: "needle 2"},
 		{ID: "third", Kind: types.KindText, Text: "needle 3"},
 	}
+	initTestStore(t, a)
 	tt := ui.NewTester(a.view, 1180, barHeight)
 	for _, form := range []int{formBar, formPanel, formBar} {
 		a.setForm(form)

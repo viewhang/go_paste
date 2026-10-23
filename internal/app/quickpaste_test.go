@@ -27,6 +27,7 @@ func TestQuickPaste(t *testing.T) {
 						Files: []types.FileRef{{Name: fmt.Sprintf("记录 %02d", i), Path: filepath.Join(t.TempDir(), "missing.txt")}},
 					})
 				}
+				initTestStore(t, a)
 				width, height := panelWidth, panelHeight
 				if form == formBar {
 					width, height = 1180, barHeight
@@ -111,7 +112,7 @@ func TestQuickPaste(t *testing.T) {
 					t.Fatal("未显示的编号触发了粘贴")
 				}
 				tt.Key(ui.Cmd, ui.Key1)
-				if a.selected() != a.records[29] || a.hintFlash != locales.OriginalFileMissing() || a.query != "needle 29" {
+				if a.selected().ID != a.records[29].ID || a.hintFlash != locales.OriginalFileMissing() || a.query != "needle 29" {
 					t.Fatal("未粘贴搜索结果或未保留搜索")
 				}
 				a.preview = true

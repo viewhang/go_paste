@@ -424,17 +424,6 @@ func (s *Store) CollectGarbage() int {
 	return n
 }
 
-// Flush 将 WAL 中的已提交记录同步到数据库
-func (s *Store) Flush() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
-		return fs.ErrClosed
-	}
-	_, err := s.db.Execute(context.Background(), "PRAGMA wal_checkpoint(TRUNCATE)")
-	return err
-}
-
 // Close 关闭数据库并拒绝后续资源提交
 func (s *Store) Close() error {
 	s.mu.Lock()
