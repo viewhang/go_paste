@@ -23,7 +23,7 @@ var (
 	kernel32 = syscall.NewLazyDLL("kernel32.dll")
 
 	procGetClipboardSequenceNumber = user32.NewProc("GetClipboardSequenceNumber")
-	procGetForegroundWindow        = user32.NewProc("GetForegroundWindow")
+	procGetClipboardOwner          = user32.NewProc("GetClipboardOwner")
 	procGetWindowThreadProcessID   = user32.NewProc("GetWindowThreadProcessId")
 	procKeybdEvent                 = user32.NewProc("keybd_event")
 	procOpenProcess                = kernel32.NewProc("OpenProcess")
@@ -38,12 +38,12 @@ func ChangeCount() int64 {
 	return int64(n)
 }
 
-// Frontmost returns the foreground window's process, which is the app the
-// user copied from.
-func Frontmost() App {
-	hwnd, _, _ := procGetForegroundWindow.Call()
+// ClipboardSource 返回剪贴板变化计数及其所属窗口的应用信息
+func ClipboardSource() (int64, App) {
+	change := ChangeCount()
+	hwnd, _, _ := procGetClipboardOwner.Call()
 	if hwnd == 0 {
-		return App{Name: "Windows"}
+		return change, App{Name: "Windows"}
 	}
 	var pid uint32
 	procGetWindowThreadProcessID.Call(hwnd, uintptr(unsafe.Pointer(&pid)))
@@ -51,7 +51,7 @@ func Frontmost() App {
 
 	h, _, _ := procOpenProcess.Call(processQueryLimitedInformation, 0, uintptr(pid))
 	if h == 0 {
-		return app
+		return change, app
 	}
 	defer procCloseHandle.Call(h)
 
@@ -59,14 +59,14 @@ func Frontmost() App {
 	size := uint32(len(buf))
 	ok, _, _ := procQueryFullProcessImageNameW.Call(h, 0, uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&size)))
 	if ok == 0 {
-		return app
+		return change, app
 	}
 	exe := syscall.UTF16ToString(buf[:size])
 	app.Path = exe
 	base := filepath.Base(exe)
 	app.Name = strings.TrimSuffix(base, filepath.Ext(base))
 	app.ID = strings.ToLower(base)
-	return app
+	return change, app
 }
 
 // AppIdentifier 以所选 Windows 可执行文件名作为应用标识

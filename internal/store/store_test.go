@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -8,6 +9,15 @@ import (
 
 	"gopaste/internal/types"
 )
+
+// writeJSON 为旧版数据迁移测试创建 JSON 文件
+func writeJSON(path string, value any) error {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o644)
+}
 
 // openTest opens a store in a fixed directory under .mygo: a temporary
 // directory needs a cleanup step some sandboxes deny.
@@ -51,7 +61,7 @@ func TestMoveToFront(t *testing.T) {
 	if before[0].ID != "three" || before[1].ID != "two" || before[2].ID != "one" {
 		t.Fatal("调整顺序修改了此前读取的列表快照")
 	}
-	if list[0] != one || !list[0].CreatedAt.Equal(created) || list[0].ListID != "work" {
+	if list[0].ID != one.ID || list[0].Text != one.Text || !list[0].CreatedAt.Equal(created) || list[0].ListID != "work" {
 		t.Fatal("调整顺序改变了记录信息")
 	}
 	reopened, err := Open(s.Dir())

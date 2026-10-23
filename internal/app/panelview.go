@@ -213,9 +213,9 @@ func (a *App) addTabButton(c *ui.Context, p palette) {
 func (a *App) listPane(c *ui.Context, p palette) {
 	n := len(a.vis)
 	a.list.Key = func(i int) any { return a.vis[i].ID }
-	a.list.Label = func(i int) string { return recordTitle(a.vis[i]) }
+	a.list.Label = func(i int) string { return recordTitle(a.recordAt(i)) }
 	list := ui.List(c, &a.list, n, func(i int) {
-		a.panelRow(c, a.vis[i], i)
+		a.panelRow(c, a.recordAt(i), i)
 	}).Grow(1).TrackScroll(&a.listScroll).Padding(panelListPadding, 7).Gap(panelRowGap)
 	if a.settings.Theme == themeGlass {
 		list.Padding(glassHeaderHeight+panelListPadding, 7, panelListPadding).ScrollbarInsets(glassHeaderHeight, 0, 0)

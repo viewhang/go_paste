@@ -2,6 +2,7 @@ package store
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,7 +45,7 @@ func captureTest(t *testing.T, s *Store, r *types.Record, image, icon []byte) *t
 // TestStorageDefaultMigration 验证旧设置保留已有偏好并补齐容量与内容排除规则
 func TestStorageDefaultMigration(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, settingsFile), []byte(`{"hotkey":"Alt+V","maxRecords":700,"retentionDays":30,"showSource":false}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, legacySettingsFile), []byte(`{"hotkey":"Alt+V","maxRecords":700,"retentionDays":30,"showSource":false}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	s, err := Open(dir)
@@ -118,12 +119,12 @@ func TestStorageQuotaReferences(t *testing.T) {
 func TestStorageOversizeRejection(t *testing.T) {
 	s := storageTest(t, 1)
 	old := captureTest(t, s, &types.Record{Kind: types.KindImage}, []byte("原始图片"), nil)
-	before, _ := os.ReadFile(filepath.Join(s.Dir(), indexFile))
+	before, _ := json.Marshal(s.List())
 	large := bytes.Repeat([]byte{5}, (1<<20)+1)
 	if _, _, err := s.Capture(&types.Record{Kind: types.KindImage}, large, []byte("new icon")); !errors.Is(err, ErrHistoryLimit) {
 		t.Fatalf("未拒绝超大图片：%v", err)
 	}
-	after, _ := os.ReadFile(filepath.Join(s.Dir(), indexFile))
+	after, _ := json.Marshal(s.List())
 	entries, _ := os.ReadDir(s.BlobDir())
 	if !bytes.Equal(before, after) || len(entries) != 1 {
 		t.Fatal("拒绝超大图片时修改了历史或留下文件")
@@ -175,6 +176,9 @@ func TestStorageLegacyDedup(t *testing.T) {
 	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Remove(filepath.Join(s.Dir(), databaseFile)); err != nil {
+		t.Fatal(err)
+	}
 	if err := writeJSON(filepath.Join(s.Dir(), indexFile), index{Version: 1, Records: []*types.Record{
 		{ID: "work", Kind: types.KindImage, Image: name, ListID: "work"},
 		{ID: "archive", Kind: types.KindImage, Image: name, ListID: "archive"},
@@ -193,7 +197,7 @@ func TestStorageLegacyDedup(t *testing.T) {
 	if err != nil || !merged || r.ID != "work" || r.ListID != "work" || len(reopened.List()) != 2 {
 		t.Fatalf("旧图片合并丢失整理信息：%+v %v", r, err)
 	}
-	persisted, _ := os.ReadFile(filepath.Join(s.Dir(), indexFile))
+	persisted, _ := json.Marshal(reopened.List())
 	if !bytes.Contains(persisted, []byte(`"hash"`)) {
 		t.Fatal("指纹没有持久化")
 	}
@@ -240,9 +244,8 @@ func TestStorageRestartDedup(t *testing.T) {
 func TestStorageCommitFailure(t *testing.T) {
 	s := storageTest(t, 1)
 	r := captureTest(t, s, &types.Record{Kind: types.KindImage, Source: types.Source{AppName: "旧来源"}}, []byte("old image"), []byte("old icon"))
-	indexPath := filepath.Join(s.Dir(), indexFile)
-	before, _ := os.ReadFile(indexPath)
-	if err := os.Mkdir(indexPath+".tmp", 0o755); err != nil {
+	before, _ := json.Marshal(s.List())
+	if _, err := s.db.Execute(context.Background(), "PRAGMA query_only=ON"); err != nil {
 		t.Fatal(err)
 	}
 	if s.Delete(r.ID) {
@@ -260,13 +263,13 @@ func TestStorageCommitFailure(t *testing.T) {
 	}); err == nil {
 		t.Fatal("索引失败时报告更新成功")
 	}
-	after, _ := os.ReadFile(indexPath)
+	after, _ := json.Marshal(s.List())
 	entries, _ := os.ReadDir(s.BlobDir())
 	saved, ok := s.Get(r.ID)
 	if !bytes.Equal(before, after) || len(entries) != 2 || !ok || saved.Source.AppName != "旧来源" || saved.Source.Icon != r.Source.Icon {
 		t.Fatal("索引失败损坏了内存、资源或原索引")
 	}
-	if err := os.Remove(indexPath + ".tmp"); err != nil {
+	if _, err := s.db.Execute(context.Background(), "PRAGMA query_only=OFF"); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -307,31 +310,36 @@ func TestStorageLatePreviewAndIcons(t *testing.T) {
 
 // TestStorageCorruptIndex 验证损坏索引阻止启动回收而成功启动清理孤立资源
 func TestStorageCorruptIndex(t *testing.T) {
-	s := storageTest(t, 1)
-	orphan, err := s.SaveBlob([]byte("orphan"), "png")
-	if err != nil {
+	dir := t.TempDir()
+	blobDir := filepath.Join(dir, "blobs")
+	if err := os.MkdirAll(blobDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	orphan := filepath.Join(blobDir, "orphan.png")
+	if err := os.WriteFile(orphan, []byte("orphan"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	for _, invalid := range []string{`{"records":`, `{}`, `null`} {
-		if err := os.WriteFile(filepath.Join(s.Dir(), indexFile), []byte(invalid), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, indexFile), []byte(invalid), 0600); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := Open(s.Dir()); err == nil {
+		if st, err := Open(dir); err == nil {
+			st.Close()
 			t.Fatal("损坏索引被当作空历史")
 		}
-		if _, err := s.ReadBlob(orphan); err != nil {
-			t.Fatal("索引加载失败时清理了资源")
+		if _, err := os.Stat(orphan); err != nil {
+			t.Fatal("迁移失败时清理了资源")
 		}
 	}
-	if err := s.Flush(); err != nil {
+	if err := writeJSON(filepath.Join(dir, indexFile), index{Version: 1}); err != nil {
 		t.Fatal(err)
 	}
-	reopened, err := Open(s.Dir())
+	reopened, err := Open(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer reopened.Close()
-	if _, err := reopened.ReadBlob(orphan); !errors.Is(err, fs.ErrNotExist) {
+	if _, err := os.Stat(orphan); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatal("启动未回收孤立资源")
 	}
 }
@@ -357,12 +365,16 @@ func TestStorageConcurrentCommits(t *testing.T) {
 		})
 	}
 	wg.Wait()
-	data, err := os.ReadFile(filepath.Join(s.Dir(), indexFile))
-	var idx index
-	if err != nil || json.Unmarshal(data, &idx) != nil || len(idx.Records) != 12 {
-		t.Fatalf("并发提交丢记录或损坏索引：%s %v", data, err)
+	reopened, err := Open(s.Dir())
+	if err != nil {
+		t.Fatal(err)
 	}
-	for name := range references(idx.Records) {
+	defer reopened.Close()
+	records := reopened.List()
+	if len(records) != 12 {
+		t.Fatalf("并发提交丢失记录：%d", len(records))
+	}
+	for name := range references(records) {
 		if _, err := s.ReadBlob(name); err != nil {
 			t.Fatalf("索引引用了不存在的资源：%s %v", name, err)
 		}

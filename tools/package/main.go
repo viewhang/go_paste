@@ -121,6 +121,7 @@ func main() {
 		name := locales.Catalog.Format(tag, "mygo.appName", nil)
 		must(os.WriteFile(filepath.Join(dir, "InfoPlist.strings"), []byte(fmt.Sprintf("\"CFBundleDisplayName\" = %q;\n", name)), 0o644))
 	}
+	must(bundleSQLite(root, res, *arch, c.MacOS.SigningIdentity))
 	must(signApp(app, c.Identifier, c.MacOS.SigningIdentity))
 	if *release {
 		must(writeUpdate(c, app, *arch))

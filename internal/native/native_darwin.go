@@ -177,20 +177,10 @@ func ChangeCount() int64 {
 	return n
 }
 
-// Frontmost returns the application that is frontmost right now, which is
-// the one the user copied from.
-func Frontmost() App {
-	load()
+// runningApp 从运行中的 macOS 应用读取标识、名称与图标路径
+func runningApp(cur objc.ID) App {
 	var app App
-	withPool(func() {
-		ws := send(class("NSWorkspace"), "sharedWorkspace")
-		if ws == 0 {
-			return
-		}
-		cur := send(ws, "frontmostApplication")
-		if cur == 0 {
-			return
-		}
+	if cur != 0 {
 		app.Name = goString(send(cur, "localizedName"))
 		app.ID = goString(send(cur, "bundleIdentifier"))
 		app.Pid = sendInt(cur, "processIdentifier")
@@ -201,7 +191,7 @@ func Frontmost() App {
 		if me != 0 {
 			app.Self = app.ID != "" && app.ID == goString(send(me, "bundleIdentifier"))
 		}
-	})
+	}
 	if app.Name == "" {
 		app.Name = "macOS"
 	}

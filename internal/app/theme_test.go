@@ -79,6 +79,9 @@ func TestGlassFloatingHeader(t *testing.T) {
 				for i := range 30 {
 					a.records = append(a.records, &types.Record{ID: fmt.Sprint(i), Kind: types.KindLink, PreviewImage: photo, URL: fmt.Sprintf("https://example.test/%d", i), Title: fmt.Sprintf("悬浮测试记录 %02d", i)})
 				}
+				for i := len(a.records) - 1; i >= 0; i-- {
+					st.Add(a.records[i])
+				}
 				tt := ui.NewTester(a.view, size.w, size.h)
 				tt.SetDark(dark)
 				tt.Frame()
@@ -124,7 +127,7 @@ func TestGlassFloatingHeader(t *testing.T) {
 					}
 				}
 				tt.Type("悬浮测试记录 00")
-				if len(a.vis) != 1 || a.vis[0] != a.records[0] {
+				if len(a.vis) != 1 || a.vis[0].ID != a.records[0].ID {
 					t.Fatal("悬浮搜索框未更新筛选结果")
 				}
 				tt.Key(ui.Cmd, ui.KeyA)

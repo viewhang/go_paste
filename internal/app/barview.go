@@ -123,7 +123,7 @@ func (a *App) barStrip(c *ui.Context, p palette) {
 			}
 			for i := first; i < last; i++ {
 				c.Key(a.vis[i].ID)
-				a.barCard(c, a.vis[i], i)
+				a.barCard(c, a.recordAt(i), i)
 			}
 			if last < shown {
 				ui.Box(c).Width(float32(shown-last)*step - cardGap).Shrink(0)

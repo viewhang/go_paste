@@ -7,8 +7,8 @@ import "errors"
 // ChangeCount is not implemented on this platform.
 func ChangeCount() int64 { return 0 }
 
-// Frontmost is not implemented on this platform.
-func Frontmost() App { return App{Name: "Desktop"} }
+// ClipboardSource 返回当前平台的空变化计数与默认来源
+func ClipboardSource() (int64, App) { return 0, App{Name: "Desktop"} }
 
 // AppIdentifier 报告当前平台不支持读取应用标识
 func AppIdentifier(path string) (string, error) {

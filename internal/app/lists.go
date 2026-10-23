@@ -167,10 +167,13 @@ func (a *App) deleteTab(tab types.Tab) {
 		s.CustomTabs = slices.DeleteFunc(slices.Clone(s.CustomTabs), func(t types.Tab) bool { return t.ID == tab.ID })
 	})
 	if a.st != nil {
-		for _, r := range a.records {
-			if r.ListID == tab.ID {
-				a.st.Update(r.ID, func(r *types.Record) { r.ListID = "" })
-			}
+		records, err := a.st.IDs(types.Tab{ID: tab.ID}, "")
+		if err != nil {
+			a.storageError(err)
+			return
+		}
+		for _, r := range records {
+			a.st.Update(r.ID, func(r *types.Record) { r.ListID = "" })
 		}
 		a.reload()
 	}

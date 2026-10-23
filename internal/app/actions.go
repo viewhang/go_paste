@@ -9,6 +9,7 @@ import (
 	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
 
+	"gopaste/internal/clip"
 	"gopaste/internal/locales"
 	"gopaste/internal/native"
 	"gopaste/internal/types"
@@ -134,12 +135,12 @@ func (a *App) pasteSelected(plain bool) {
 	a.paste(rec, plain)
 }
 
-// paste 写入所选记录、发送粘贴按键并按偏好调整记录顺序与搜索状态
+// paste 按纯文本偏好写入所选记录并执行粘贴、排序与搜索重置
 func (a *App) paste(rec *types.Record, plain bool) {
 	if rec == nil {
 		return
 	}
-	if err := a.writeClipboard(rec, plain, "hex"); err != nil {
+	if err := a.writeClipboard(rec, plain || a.settings.PastePlain, "hex"); err != nil {
 		a.toast(err.Error())
 		return
 	}
@@ -181,8 +182,7 @@ func (a *App) copy(rec *types.Record, plain bool) {
 
 // copyText 将文本写入剪贴板并显示操作结果
 func (a *App) copyText(s string) {
-	a.suppressWatcher()
-	if err := mygo.Clipboard.Write(transfer.TextData(s)); err != nil {
+	if err := clip.Write(transfer.TextData(s)); err != nil {
 		a.toast(err.Error())
 		return
 	}
@@ -229,8 +229,9 @@ func (a *App) exportImage(rec *types.Record) {
 	a.notify(locales.Exported())
 }
 
+// openPreview 按需读取完整记录并打开预览
 func (a *App) openPreview() {
-	rec := a.selected()
+	rec := a.fullRecord(a.selected())
 	if rec == nil {
 		return
 	}

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -92,8 +93,11 @@ type App struct {
 	// dragImage 复用当前拖拽的紧凑预览像素缓冲
 	dragImage *image.RGBA
 
-	vis   []*types.Record
-	acted bool
+	// pages 最多保留两个分页摘要，避免滚动后积累完整历史
+	pages     map[int][]*types.Record
+	pageOrder []int
+	vis       []*types.Record
+	acted     bool
 	// filterValid 标记筛选结果是否仍对应当前记录与列表规则
 	filterValid bool
 	// filterQuery 保存最近一次筛选使用的搜索词
@@ -229,7 +233,11 @@ func (a *App) reload() {
 	}
 	a.lastReload = time.Now()
 	a.settings = a.st.Settings()
-	a.records = a.st.List()
+	var err error
+	a.records, err = a.st.IDs(types.Tab{ID: "all"}, "")
+	if err != nil {
+		a.storageError(err)
+	}
 	a.filterValid = false
 	a.vis = a.filtered()
 	a.clampSel()
@@ -266,15 +274,25 @@ func (a *App) filtered() []*types.Record {
 	}
 	tab := a.currentTab()
 	q := strings.ToLower(strings.TrimSpace(a.query))
-	out := make([]*types.Record, 0, len(a.records))
-	for _, r := range a.records {
-		if !listMatches(tab, r) {
-			continue
+	var out []*types.Record
+	if a.st != nil {
+		var err error
+		out, err = a.st.IDs(tab, q)
+		if err != nil {
+			a.storageError(err)
 		}
-		if q != "" && !matches(r, q) {
-			continue
+		a.pages = make(map[int][]*types.Record)
+		a.pageOrder = nil
+	} else {
+		for _, r := range a.records {
+			if !listMatches(tab, r) {
+				continue
+			}
+			if q != "" && !matches(r, q) {
+				continue
+			}
+			out = append(out, r)
 		}
-		out = append(out, r)
 	}
 	a.vis = out
 	a.filterValid, a.filterQuery, a.filterTab = true, a.query, a.tab
@@ -298,12 +316,66 @@ func matches(r *types.Record, q string) bool {
 	return false
 }
 
-// selected returns the record the keyboard chose.
+// selected 返回键盘选中的卡片摘要
 func (a *App) selected() *types.Record {
 	if a.sel >= 0 && a.sel < len(a.vis) {
-		return a.vis[a.sel]
+		return a.recordAt(a.sel)
 	}
 	return nil
+}
+
+// recordAt 按五十条一页读取卡片摘要并淘汰较早访问的分页
+func (a *App) recordAt(i int) *types.Record {
+	if a.st == nil {
+		return a.vis[i]
+	}
+	// pageSize 设置每页摘要数量
+	const pageSize = 50
+	page := i / pageSize
+	if records, ok := a.pages[page]; ok {
+		a.pageOrder = append(slices.DeleteFunc(a.pageOrder, func(p int) bool { return p == page }), page)
+		return records[i%pageSize]
+	}
+	start, end := page*pageSize, min((page+1)*pageSize, len(a.vis))
+	ids := make([]string, end-start)
+	for j := range ids {
+		ids[j] = a.vis[start+j].ID
+	}
+	records, err := a.st.Summaries(ids)
+	if err != nil {
+		a.storageError(err)
+		return a.vis[i]
+	}
+	byID := make(map[string]*types.Record, len(records))
+	for _, r := range records {
+		byID[r.ID] = r
+	}
+	ordered := make([]*types.Record, len(ids))
+	for j, id := range ids {
+		ordered[j] = byID[id]
+		if ordered[j] == nil {
+			ordered[j] = a.vis[start+j]
+		}
+	}
+	if a.pages == nil {
+		a.pages = make(map[int][]*types.Record)
+	}
+	a.pages[page] = ordered
+	a.pageOrder = append(a.pageOrder, page)
+	if len(a.pageOrder) > 2 {
+		delete(a.pages, a.pageOrder[0])
+		a.pageOrder = a.pageOrder[1:]
+	}
+	return ordered[i%pageSize]
+}
+
+// fullRecord 在预览、复制或拖出摘要时读取原始内容
+func (a *App) fullRecord(r *types.Record) *types.Record {
+	if r == nil || !r.Summary {
+		return r
+	}
+	full, _ := a.st.Get(r.ID)
+	return full
 }
 
 // ---- window geometry ----

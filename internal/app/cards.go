@@ -26,7 +26,7 @@ func (a *App) recordThumb(r *types.Record) *ui.Bitmap {
 	case types.KindLink:
 		return a.thumb(r.PreviewImage, 56)
 	case types.KindFile:
-		if len(r.Files) > 0 {
+		if recordFileCount(r) > 0 {
 			return a.fileIcon(r.Files[0].Path)
 		}
 	}
@@ -230,8 +230,8 @@ func barBody(c *ui.Context, a *App, r *types.Record, p palette) {
 					ui.Text(c, n).FontSize(10.5).TextColor(p.text).SingleLine()
 				})
 			}
-			if len(r.Files) > 3 {
-				ui.Text(c, locales.MoreFiles(len(r.Files)-3)).FontSize(10).TextColor(p.faint)
+			if recordFileCount(r) > 3 {
+				ui.Text(c, locales.MoreFiles(recordFileCount(r)-3)).FontSize(10).TextColor(p.faint)
 			}
 		})
 	default:
@@ -275,10 +275,18 @@ func (a *App) cardMenu(c *ui.Context, m *ui.Menu, r *types.Record) {
 	switch r.Kind {
 	case types.KindLink:
 		if m.Item(locales.OpenInBrowser()).Chosen() {
-			a.later(func() { _ = mygo.Shell.OpenExternal(r.URL) })
+			a.later(func() {
+				if full := a.fullRecord(r); full != nil {
+					_ = mygo.Shell.OpenExternal(full.URL)
+				}
+			})
 		}
 		if m.Item(locales.CopyURL()).Chosen() {
-			a.later(func() { a.copyText(r.URL) })
+			a.later(func() {
+				if full := a.fullRecord(r); full != nil {
+					a.copyText(full.URL)
+				}
+			})
 		}
 	case types.KindImage:
 		if m.Item(locales.ExportImage()).Chosen() {
@@ -294,7 +302,7 @@ func (a *App) cardMenu(c *ui.Context, m *ui.Menu, r *types.Record) {
 			}
 		})
 	case types.KindFile:
-		if len(r.Files) > 0 {
+		if recordFileCount(r) > 0 {
 			if m.Item(locales.Open()).Chosen() {
 				a.later(func() { _ = mygo.Shell.OpenPath(r.Files[0].Path) })
 			}

@@ -17,7 +17,12 @@ func (a *App) scheduleLinkPreviews() {
 	if a.st == nil || !a.st.Settings().LinkPreview {
 		return
 	}
-	for _, r := range a.records {
+	records, err := a.st.PendingLinks()
+	if err != nil {
+		log.Print("reading pending previews: ", err)
+		return
+	}
+	for _, r := range records {
 		if r.Kind == types.KindLink && r.PreviewState == "" && r.URL != "" {
 			go a.fetchPreview(r.ID, r.URL)
 		}
