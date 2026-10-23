@@ -1,0 +1,13 @@
+# build output
+/build/
+*.app
+*.exe
+*.dmg
+*.zip
+
+# mygo runtime data, screenshots and scratch builds
+/.mygo/
+
+# os noise
+.DS_Store
+Thumbs.db

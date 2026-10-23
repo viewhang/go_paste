@@ -1,0 +1,21 @@
+{
+  "name": "GoPaste",
+  "identifier": "dev.gopaste.app",
+  "version": "0.1.0",
+  "copyright": "Copyright © 2026 GoPaste",
+  "icon": "internal/assets/icon.png",
+  "out": "build",
+  "updates": {
+    "github": "viewhang/go_paste",
+    "publicKey": "GD6zROKRwaGD7TJw456tE1tVb8GL/A7CGb+PEm5Wuxc=",
+    "privateKey": "~/Library/Application Support/GoPaste/update-keys/mygo-update.key"
+  },
+  "macos": {
+    "minimumSystemVersion": "12.0",
+    "signingIdentity": "D32ECD47A0C10DE7F20D94F618FABBC5165CB991"
+  },
+  "i18n": {
+    "dir": "internal/locales",
+    "source": "zh-Hans"
+  }
+}

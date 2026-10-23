@@ -1,0 +1,398 @@
+{
+  "@@locale": "zh-Hans",
+  "settings": "设置",
+  "general": "通用",
+  "advanced": "高级",
+  "about": "关于",
+  "done": "完成",
+  "cancel": "取消",
+  "save": "保存",
+  "create": "创建",
+  "clear": "清除",
+  "all": "全部",
+  "copy": "复制",
+  "paste": "粘贴",
+  "quickPaste": "快速粘贴",
+  "pastePlain": "粘贴为纯文本",
+  "plainText": "纯文本",
+  "preview": "预览",
+  "open": "打开",
+  "delete": "删除",
+  "appearance": "外观与形态",
+  "language": "语言",
+  "followSystem": "跟随系统",
+  "theme": "主题",
+  "themeSystemHint": "两种主题均跟随系统的深浅色。",
+  "classicTheme": "经典",
+  "panelForm": "面板形态",
+  "bottomBar": "贴底长条",
+  "followPointer": "跟随鼠标",
+  "pointerPanel": "跟随鼠标",
+  "switchToPointer": "切换到跟随鼠标",
+  "switchToBar": "切换到贴底长条",
+  "pastePlainDefault": "默认粘贴为纯文本",
+  "pastePlainHint": "关掉时，富文本记录会带着格式粘贴。",
+  "moveToFrontOnPaste": "粘贴后将项目移至最前",
+  "resetPanelAfterPaste": "粘贴后重置面板",
+  "linkPreview": "链接预览",
+  "linkPreviewHint": "复制链接后获取网页标题和预览图，需要联网。",
+  "historyStartup": "历史与启动",
+  "maxRecords": "最多保留记录",
+  "maxRecordsHint": "条数超出时删除最旧的记录，普通列表不计入条数。",
+  "retention": "保留时间",
+  "forever": "永久",
+  "launchAtLogin": "开机时启动",
+  "pauseRecording": "暂停记录",
+  "data": "数据",
+  "recordLocation": "存储位置",
+  "showInFolder": "在文件夹中显示",
+  "clearHistory": "清空历史",
+  "clearAction": "清空",
+  "clearHistoryTitle": "清空剪贴板历史",
+  "clearHistoryMessage": "这会删除全部记录，且无法撤销。",
+  "accessNeeded": "自动粘贴需要这项权限。",
+  "accessPermission": "辅助功能权限",
+  "enabled": "已开启",
+  "enableAccess": "去开启",
+  "searchClipboard": "搜索记录",
+  "addList": "添加列表",
+  "manualList": "普通列表",
+  "smartList": "智能列表",
+  "editManualList": "编辑普通列表",
+  "editSmartList": "编辑智能列表",
+  "newManualList": "新建普通列表",
+  "newSmartList": "新建智能列表",
+  "listName": "列表名称",
+  "listNameRequired": "请输入列表名称",
+  "listRuleRequired": "请至少添加一条规则",
+  "listRuleIncomplete": "请填写完整的规则",
+  "editList": "编辑列表",
+  "deleteList": "删除列表",
+  "matchAll": "全部满足",
+  "matchAny": "任意满足",
+  "matchMode": "匹配方式",
+  "ruleKind": "内容类型",
+  "ruleExtension": "文件类型",
+  "ruleKeyword": "关键词包含",
+  "keyword": "关键词",
+  "extensionExample": "扩展名，如 pdf, png",
+  "addRule": "添加规则",
+  "textKind": "文本",
+  "imageKind": "图片",
+  "linkKind": "链接",
+  "colorKind": "颜色",
+  "fileKind": "文件",
+  "emptyText": "空文本",
+  "richText": "富文本",
+  "notSet": "未设置",
+  "emptySearchHint": "换个关键词试试，或按 Esc 清除",
+  "emptyFilterHint": "这个筛选条件下还没有记录",
+  "emptyHistoryHint": "复制点什么，它就会出现在这里",
+  "emptyHistory": "这里还是空的",
+  "recordingPaused": "已暂停记录",
+  "enableAutoPaste": "开启辅助功能以自动粘贴",
+  "openSystemSettingsHint": "点按打开系统设置",
+  "copiedNeedAccess": "已复制，开启辅助功能后可自动粘贴",
+  "autoPasteFailed": "自动粘贴失败，内容已在剪贴板",
+  "copied": "已复制",
+  "exported": "已导出",
+  "imageFileMissing": "图片文件已丢失",
+  "originalFileMissing": "原文件已不存在",
+  "noPasteContent": "这条记录没有可粘贴的内容",
+  "imageMissing": "图片已丢失",
+  "fileMoved": "已移动",
+  "moveTo": "移动到",
+  "openInBrowser": "在浏览器中打开",
+  "copyURL": "复制链接",
+  "exportImage": "导出图片",
+  "copyAs": "复制为",
+  "copyFilePath": "复制文件路径",
+  "olderRecordsHint": "用搜索找更早的内容",
+  "updates": "软件更新",
+  "developmentVersion": "开发版",
+  "currentVersion": "当前版本",
+  "checkUpdates": "检查更新",
+  "checkingUpdates": "正在检查更新",
+  "downloadingUpdates": "正在下载更新",
+  "installingUpdates": "正在安装更新",
+  "updatesUnavailable": "当前构建未启用自动更新，或应用所在目录不可写。",
+  "autoCheckUpdates": "自动检查更新",
+  "autoCheckUpdatesHint": "启动后检查新版本，运行期间每天检查一次。",
+  "autoInstallUpdates": "自动下载安装",
+  "autoInstallUpdatesHint": "后台安装，下次启动生效",
+  "welcomeTitle": "欢迎使用 GoPaste",
+  "welcomeTagline": "复制过的内容，随时找回来",
+  "onboardCopy": "照常复制",
+  "onboardCopyHint": "文本、图片、链接、颜色和文件都会被收进卡片，附上时间和来源应用。",
+  "onboardOrganize": "搜索与整理",
+  "onboardOrganizeHint": "输入关键词筛选，Space 预览，用普通列表手动整理或智能列表自动归类。",
+  "onboardFormHint": "随时可以在设置里切换，两种形态共用同一份历史。",
+  "getStarted": "开始使用",
+  "openSettings": "打开设置",
+  "accessStep": "还差一步：允许自动粘贴",
+  "accessGranted": "已允许自动粘贴",
+  "accessExplanation": "复制内容始终可用；要让它替你在当前应用里按下粘贴，macOS 需要“辅助功能”权限。",
+  "openSystemSettings": "打开系统设置",
+  "accessNoRestart": "授权后无需重启",
+  "shortcutToggle": "呼出面板",
+  "shortcutCopy": "复制选中记录",
+  "shortcutSearch": "聚焦搜索",
+  "shortcutNeedsModifier": "呼出快捷键需要包含 ⌘、Ctrl 或 Alt",
+  "shortcutNeedsCombination": "请使用组合键，保留直接输入搜索与方向键导航",
+  "shortcutTextEditing": "该按键用于搜索框的文本编辑",
+  "shortcuts": "快捷键",
+  "shortcutScopeHint": "全局生效，其余快捷键仅在面板内生效。",
+  "shortcutRecorderHint": "点击按键后录制，Esc 取消",
+  "restoreShortcuts": "恢复默认快捷键",
+  "recordShortcut": "按下新的快捷键",
+  "closePreview": "关闭预览 (Esc)",
+  "animatedImage": "动图",
+  "previewTruncated": "（预览只显示前 2 万个字符）",
+  "deleteRecord": "删除这条记录",
+  "openGoPaste": "打开 GoPaste",
+  "createDataFailed": "GoPaste 无法创建数据目录",
+  "readHistoryFailed": "GoPaste 无法读取剪贴板历史",
+  "settingsTitle": "GoPaste 设置",
+  "justNow": "刚刚",
+  "recordsCount": "{count, plural, other {# 条}}",
+  "recordsPresent": "已保存 {count} 条记录。",
+  "@recordsPresent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moreRecords": "还有 {count} 条",
+  "@moreRecords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moreFiles": "另有 {count} 个文件",
+  "@moreFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fileCount": "{count} 个文件",
+  "@fileCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fileGroupTitle": "{name}（共 {count} 个文件）",
+  "@fileGroupTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "characterCount": "{count} 个字符",
+  "@characterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filePreviewMeta": "{count} 个文件 · {size}",
+  "@filePreviewMeta": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "retentionDays": "{count} 天",
+  "@retentionDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchNotFound": "没有找到 “{query}”",
+  "@searchNotFound": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "sourceApp": "来源应用：{name}",
+  "@sourceApp": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "inputLabel": "{label}输入框",
+  "@inputLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "imageFilter": "{format} 图片",
+  "@imageFilter": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      }
+    }
+  },
+  "folderSubtitle": "文件夹 · {folder}",
+  "@folderSubtitle": {
+    "placeholders": {
+      "folder": {
+        "type": "String"
+      }
+    }
+  },
+  "movedToList": "已移入“{name}”",
+  "@movedToList": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "ruleTypeLabel": "规则类型{index}",
+  "@ruleTypeLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "ruleValueLabel": "规则内容{index}",
+  "@ruleValueLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "removeRuleLabel": "删除规则{index}",
+  "@removeRuleLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "shortcutConflict": "与“{action}”快捷键冲突",
+  "@shortcutConflict": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "shortcutLabel": "{action}快捷键",
+  "@shortcutLabel": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "shortcutOccupied": "{shortcut} 已被占用",
+  "@shortcutOccupied": {
+    "placeholders": {
+      "shortcut": {
+        "type": "String"
+      }
+    }
+  },
+  "panelHint": "{paste} 粘贴 · {preview} 预览",
+  "@panelHint": {
+    "placeholders": {
+      "paste": {
+        "type": "String"
+      },
+      "preview": {
+        "type": "String"
+      }
+    }
+  },
+  "pressShortcut": "按下 {shortcut}",
+  "@pressShortcut": {
+    "placeholders": {
+      "shortcut": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardPasteHint": "面板出现在指针所在的屏幕，选一张卡片，{shortcut} 就粘到刚才的应用里。",
+  "@onboardPasteHint": {
+    "placeholders": {
+      "shortcut": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardReady": "一切就绪，按 {shortcut} 呼出历史。",
+  "@onboardReady": {
+    "placeholders": {
+      "shortcut": {
+        "type": "String"
+      }
+    }
+  },
+  "lastUpdateCheck": "上次检查：{date, date, short} {date, time, short}",
+  "minutesAgo": "{count} 分钟前",
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeOfDay": "{date, time, short}",
+  "yesterday": "昨天 {date, time, short}",
+  "monthDay": "{date, date, ::MMMd}",
+  "yearMonthDay": "{date, date, ::yMMMd}",
+  "fullTime": "{date, date, short} {date, time, medium}",
+  "mygo.appName": "GoPaste",
+  "mygo.appDescription": "剪贴板历史与列表管理",
+  "historyStorageLimit": "历史存储上限",
+  "historyStorageHint": "容量超出时删除最旧的记录，普通列表永久保留。",
+  "imageStorageLimitReached": "图片超过历史存储上限，未记录",
+  "saveHistoryFailed": "保存历史失败：{error}",
+  "privacy": "排除规则",
+  "otherRules": "其他规则",
+  "excludeConfidential": "忽略标记为机密的内容",
+  "excludeWhitespace": "排除空白和空白行",
+  "imageSizeLimit": "图片大小限制",
+  "imageSizeLimitHint": "设为 0 时不限制图片大小",
+  "excludedApps": "排除应用",
+  "addExcludedApp": "添加应用",
+  "removeExcludedApp": "移除 {name}",
+  "@removeExcludedApp": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "appFilter": "应用",
+  "addExcludedAppFailed": "无法添加应用",
+  "loadAppsFailed": "无法读取已安装的应用"
+}
