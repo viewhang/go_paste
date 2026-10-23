@@ -64,6 +64,10 @@ type Record struct {
 	Color string `json:"color,omitempty"`
 
 	Files []FileRef `json:"files,omitempty"`
+	// FileCount 保存摘要对应的完整文件数量
+	FileCount int `json:"fileCount,omitempty"`
+	// Summary 标识按需加载的卡片摘要
+	Summary bool `json:"-"`
 
 	ListID string `json:"listId,omitempty"`
 	Bytes  int64  `json:"bytes,omitempty"`

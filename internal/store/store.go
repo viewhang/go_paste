@@ -1,15 +1,10 @@
-// Package store persists clipboard records and preferences.
-//
-// Records live in one JSON file, images in a content addressed blob
-// directory beside it. The file is small enough for a few thousand entries
-// and avoids any cgo or database dependency, which keeps cross compilation
-// to Windows a plain Go build.
+// Package store 使用 SQLite 保存历史与设置，使用独立文件保存图片
 package store
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io/fs"
 	"log"
@@ -21,21 +16,30 @@ import (
 	"time"
 
 	"gopaste/internal/types"
+
+	"github.com/egoist/mygo/plugins/sqlite"
 )
 
 const (
-	indexFile    = "records.json"
-	settingsFile = "settings.json"
+	// indexFile 标识待迁移的旧版历史文件
+	indexFile = "records.json"
+	// databaseFile 标识历史与设置共用的数据库
+	databaseFile = "history.db"
+	// legacySettingsFile 标识待迁移的旧版设置文件
+	legacySettingsFile = "settings.json"
 )
 
 // Store 串行管理历史索引、资源文件与偏好设置
 type Store struct {
-	mu       sync.Mutex
-	dir      string
-	blobDir  string
-	records  []*types.Record
-	byID     map[string]*types.Record
-	settings types.Settings
+	mu      sync.Mutex
+	dir     string
+	blobDir string
+	// records 仅缓存清理和去重需要的元数据，不保留正文与文件列表
+	records   []*types.Record
+	db        *sqlite.DB
+	positions map[string]int64
+	byID      map[string]*types.Record
+	settings  types.Settings
 
 	closed bool
 }
@@ -52,48 +56,16 @@ func Open(dir string) (*Store, error) {
 	if err := os.MkdirAll(s.blobDir, 0o755); err != nil {
 		return nil, err
 	}
-	if b, err := os.ReadFile(filepath.Join(dir, indexFile)); err == nil {
-		var idx index
-		if err := json.Unmarshal(b, &idx); err != nil {
-			return nil, err
-		}
-		if idx.Version != 1 {
-			return nil, errors.New("store: unsupported history index")
-		}
-		for _, r := range idx.Records {
-			if r == nil || r.ID == "" {
-				continue
-			}
-			s.records = append(s.records, r)
-			s.byID[r.ID] = r
-		}
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return nil, err
-	}
 	s.settings = types.DefaultSettings()
-	if b, err := os.ReadFile(filepath.Join(dir, settingsFile)); err == nil {
-		s.settings.ExcludedAppsInitialized = false
-		if err := json.Unmarshal(b, &s.settings); err != nil {
-			return nil, err
-		}
-	} else if !errors.Is(err, fs.ErrNotExist) {
+	if err := s.openDatabase(); err != nil {
 		return nil, err
 	}
-	migrated := !s.settings.ExcludedAppsInitialized
-	normalizeSettings(&s.settings)
-	for _, r := range s.records {
-		if r.PreviewState == "loading" {
-			r.PreviewState = ""
+	success := false
+	defer func() {
+		if !success {
+			s.db.Close()
 		}
-		if r.Hash == "" {
-			r.Hash = recordHash(r)
-		}
-	}
-	if migrated {
-		if err := writeJSON(filepath.Join(dir, settingsFile), s.settings); err != nil {
-			return nil, err
-		}
-	}
+	}()
 	kept, err := s.pruneLocked(s.records)
 	if err != nil {
 		return nil, err
@@ -104,13 +76,14 @@ func Open(dir string) (*Store, error) {
 	// 清理启动前遗留的无引用文件，此时还没有采集或预览任务
 	s.CollectGarbage()
 
+	success = true
 	return s, nil
 }
 
-// Dir returns the store's directory.
+// Dir 返回存储目录
 func (s *Store) Dir() string { return s.dir }
 
-// BlobDir returns the directory of stored images.
+// BlobDir 返回资源文件目录
 func (s *Store) BlobDir() string { return s.blobDir }
 
 // Settings 返回当前设置、排除应用及列表规则的副本
@@ -148,7 +121,7 @@ func normalizeSettings(st *types.Settings) {
 	}
 }
 
-// SetSettings 保存偏好并立即应用历史清理规则
+// SetSettings 在同一事务中保存设置与历史清理结果，失败时保留原设置
 func (s *Store) SetSettings(st types.Settings) error {
 	normalizeSettings(&st)
 	s.mu.Lock()
@@ -156,35 +129,61 @@ func (s *Store) SetSettings(st types.Settings) error {
 	if s.closed {
 		return fs.ErrClosed
 	}
-	if err := writeJSON(filepath.Join(s.dir, settingsFile), st); err != nil {
-		return err
-	}
-	prev := s.settings
-	s.settings = st
-	if st.MaxRecords == prev.MaxRecords && st.RetentionDays == prev.RetentionDays && st.HistoryLimitMiB == prev.HistoryLimitMiB {
-		return nil
-	}
-	kept, err := s.pruneLocked(s.records)
+	statement, err := settingsStatement(st)
 	if err != nil {
 		return err
 	}
-	return s.commitLocked(kept, references(s.records))
+	prev := s.settings
+	if st.MaxRecords == prev.MaxRecords && st.RetentionDays == prev.RetentionDays && st.HistoryLimitMiB == prev.HistoryLimitMiB {
+		if _, err := s.db.Execute(context.Background(), statement.SQL, statement.Args...); err != nil {
+			return err
+		}
+		s.settings = st
+		return nil
+	}
+	s.settings = st
+	kept, err := s.pruneLocked(s.records)
+	if err == nil {
+		err = s.commitLocked(kept, references(s.records), statement)
+	}
+	if err != nil {
+		s.settings = prev
+	}
+	return err
 }
 
-// List returns records newest first. The returned slice is a copy; the
-// records are shared and must be treated as read-only.
+// List 按顺序读取完整历史快照
 func (s *Store) List() []*types.Record {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return slices.Clone(s.records)
+	rows, err := s.readRecordsLocked("payload", "ORDER BY position DESC")
+	if err != nil {
+		log.Print("listing records: ", err)
+	}
+	return rows
 }
 
-// Get returns the record with id.
+// Get 按标识从数据库读取完整记录
 func (s *Store) Get(id string) (*types.Record, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	r, ok := s.byID[id]
-	return r, ok
+	r, err := s.getLocked(id)
+	if err != nil {
+		log.Print("reading record: ", err)
+	}
+	return r, r != nil && err == nil
+}
+
+// getLocked 在存储锁内读取完整内容
+func (s *Store) getLocked(id string) (*types.Record, error) {
+	if s.closed {
+		return nil, fs.ErrClosed
+	}
+	rows, err := s.readRecordsLocked("payload", "WHERE id = ?", id)
+	if err != nil || len(rows) == 0 {
+		return nil, err
+	}
+	return rows[0], nil
 }
 
 // Add 保存已准备好资源的记录并报告是否合并重复内容
@@ -224,6 +223,10 @@ func (s *Store) Capture(r *types.Record, imageData, iconData []byte) (*types.Rec
 	for _, old := range s.records {
 		if !merged && (rec.Hash != "" && rec.Hash == old.Hash || rec.Kind == types.KindImage && rec.Image != "" && rec.Image == old.Image) {
 			merged = true
+			old, err := s.getLocked(old.ID)
+			if err != nil {
+				return nil, false, err
+			}
 			rec.ID, rec.ListID = old.ID, old.ListID
 			if rec.Title == "" {
 				rec.Title = old.Title
@@ -304,8 +307,11 @@ func (s *Store) UpdatePreview(id string, data []byte, ext string, fn func(*types
 	if s.closed {
 		return nil, false, fs.ErrClosed
 	}
-	old, ok := s.byID[id]
-	if !ok {
+	old, err := s.getLocked(id)
+	if err != nil {
+		return nil, false, err
+	}
+	if old == nil {
 		return nil, false, nil
 	}
 	rec := cloneRecord(old)
@@ -375,7 +381,7 @@ func (s *Store) SaveBlob(data []byte, ext string) (string, error) {
 	return name, s.saveBlobLocked(data, name)
 }
 
-// BlobPath returns the path of a stored blob.
+// BlobPath 返回合法资源文件的绝对路径
 func (s *Store) BlobPath(name string) string {
 	if name == "" || name == "." || name == ".." || strings.ContainsAny(name, `/\`) {
 		return ""
@@ -383,7 +389,7 @@ func (s *Store) BlobPath(name string) string {
 	return filepath.Join(s.blobDir, name)
 }
 
-// ReadBlob reads a stored blob.
+// ReadBlob 读取资源原始字节
 func (s *Store) ReadBlob(name string) ([]byte, error) {
 	p := s.BlobPath(name)
 	if p == "" {
@@ -418,14 +424,18 @@ func (s *Store) CollectGarbage() int {
 	return n
 }
 
-// Flush 在存储锁内串行写入当前索引
+// Flush 将 WAL 中的已提交记录同步到数据库
 func (s *Store) Flush() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return writeJSON(filepath.Join(s.dir, indexFile), index{Version: 1, Records: s.records})
+	if s.closed {
+		return fs.ErrClosed
+	}
+	_, err := s.db.Execute(context.Background(), "PRAGMA wal_checkpoint(TRUNCATE)")
+	return err
 }
 
-// Close 完成索引写入并拒绝后续资源提交
+// Close 关闭数据库并拒绝后续资源提交
 func (s *Store) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -433,23 +443,14 @@ func (s *Store) Close() error {
 		return nil
 	}
 	s.closed = true
-	return writeJSON(filepath.Join(s.dir, indexFile), index{Version: 1, Records: s.records})
+	return s.db.Close()
 }
 
-// NewID makes a short random identifier.
+// NewID 生成记录的随机标识
 func NewID() string {
 	var b [8]byte
 	if _, err := rand.Read(b[:]); err != nil {
 		return hex.EncodeToString([]byte(time.Now().Format("150405.000000")))
 	}
 	return hex.EncodeToString(b[:])
-}
-
-// writeJSON 原子保存 JSON 索引或设置文件
-func writeJSON(path string, v any) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	return writeAtomic(path, b)
 }

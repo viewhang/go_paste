@@ -1,19 +1,21 @@
 package app
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"image"
 	"image/draw"
+	"image/png"
+	"io/fs"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
 
+	"gopaste/internal/clip"
 	"gopaste/internal/locales"
 	"gopaste/internal/native"
 	"gopaste/internal/types"
@@ -21,7 +23,19 @@ import (
 
 // writeClipboard 按记录类型将内容写回系统剪贴板
 func (a *App) writeClipboard(rec *types.Record, plain bool, colorFormat string) error {
-	a.suppressWatcher()
+	data, err := a.clipboardData(rec, plain, colorFormat)
+	if err != nil {
+		return err
+	}
+	return clip.Write(data)
+}
+
+// clipboardData 按记录类型与文本格式生成剪贴板数据
+func (a *App) clipboardData(rec *types.Record, plain bool, colorFormat string) (transfer.Data, error) {
+	rec = a.fullRecord(rec)
+	if rec == nil {
+		return transfer.Data{}, fs.ErrNotExist
+	}
 	switch rec.Kind {
 	case types.KindText:
 		if !plain && rec.HTML != "" {
@@ -29,23 +43,26 @@ func (a *App) writeClipboard(rec *types.Record, plain bool, colorFormat string) 
 				transfer.Bytes(transfer.HTML, []byte(rec.HTML)),
 				transfer.Bytes(transfer.Text, []byte(rec.Text)),
 			)
-			return mygo.Clipboard.Write(transfer.New(item))
+			return transfer.New(item), nil
 		}
-		return mygo.Clipboard.Write(transfer.TextData(rec.Text))
+		return transfer.TextData(rec.Text), nil
 	case types.KindImage:
 		data, err := a.st.ReadBlob(rec.Image)
 		if err != nil {
-			return errors.New(locales.ImageFileMissing())
+			return transfer.Data{}, errors.New(locales.ImageFileMissing())
 		}
-		return mygo.Clipboard.WriteImage(data)
+		if _, err := png.Decode(bytes.NewReader(data)); err != nil {
+			return transfer.Data{}, err
+		}
+		return transfer.New(transfer.NewItem(transfer.Bytes(transfer.PNG, data))), nil
 	case types.KindLink:
 		item := transfer.NewItem(
 			transfer.Bytes(transfer.URIList, []byte(rec.URL+"\r\n")),
 			transfer.Bytes(transfer.Text, []byte(rec.URL)),
 		)
-		return mygo.Clipboard.Write(transfer.New(item))
+		return transfer.New(item), nil
 	case types.KindColor:
-		return mygo.Clipboard.Write(transfer.TextData(ColorString(rec.Color, colorFormat)))
+		return transfer.TextData(ColorString(rec.Color, colorFormat)), nil
 	case types.KindFile:
 		var paths []string
 		for _, f := range rec.Files {
@@ -54,20 +71,14 @@ func (a *App) writeClipboard(rec *types.Record, plain bool, colorFormat string) 
 			}
 		}
 		if len(paths) == 0 {
-			return errors.New(locales.OriginalFileMissing())
+			return transfer.Data{}, errors.New(locales.OriginalFileMissing())
 		}
-		return mygo.Clipboard.WriteFiles(paths...)
+		return transfer.FileData(paths...)
 	}
 	if rec.Text != "" {
-		return mygo.Clipboard.Write(transfer.TextData(rec.Text))
+		return transfer.TextData(rec.Text), nil
 	}
-	return errors.New(locales.NoPasteContent())
-}
-
-func (a *App) suppressWatcher() {
-	if a.watch != nil {
-		a.watch.Suppress(1500 * time.Millisecond)
-	}
+	return transfer.Data{}, errors.New(locales.NoPasteContent())
 }
 
 // recordDrag 绑定记录移动与拖出，并在拖拽开始时生成避开鼠标的紧凑预览
@@ -92,6 +103,10 @@ func (a *App) recordDrag(c *ui.Context, source ui.Element, rec *types.Record) {
 
 // dragData 在拖拽开始时创建数据并在目标请求图片时读取原文件
 func (a *App) dragData(rec *types.Record) transfer.Data {
+	rec = a.fullRecord(rec)
+	if rec == nil {
+		return transfer.Data{}
+	}
 	switch rec.Kind {
 	case types.KindImage:
 		name := rec.Image

@@ -3,6 +3,7 @@
 package clip
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,20 +19,20 @@ import (
 	"gopaste/internal/types"
 )
 
+// pollInterval 控制剪贴板变化的检测间隔
 const pollInterval = 300 * time.Millisecond
 
-// Watcher polls the clipboard's change counter and captures new content.
+// Watcher 轮询剪贴板变化并保存通过排除规则的新内容
 type Watcher struct {
 	st       *store.Store
 	onChange func(*types.Record)
 	onError  func(error)
 	isPaused func() bool
 
-	mu            sync.Mutex
-	last          int64
-	suppressUntil time.Time
-	icons         map[string][]byte
-	started       bool
+	mu      sync.Mutex
+	last    int64
+	icons   map[string][]byte
+	started bool
 }
 
 // New 创建剪贴板采集器并在轮询线程回调记录变化或保存错误
@@ -39,8 +40,7 @@ func New(st *store.Store, onChange func(*types.Record), isPaused func() bool, on
 	return &Watcher{st: st, onChange: onChange, isPaused: isPaused, onError: onError, icons: map[string][]byte{}}
 }
 
-// Start begins polling. It takes the current clipboard as the baseline, so
-// content copied before launch is not recorded.
+// Start 初始化来源跟踪并仅采集启动后的剪贴板变化
 func (w *Watcher) Start() {
 	w.mu.Lock()
 	if w.started {
@@ -48,7 +48,7 @@ func (w *Watcher) Start() {
 		return
 	}
 	w.started = true
-	w.last = native.ChangeCount()
+	w.last, _ = native.ClipboardSource()
 	w.mu.Unlock()
 
 	go func() {
@@ -60,15 +60,7 @@ func (w *Watcher) Start() {
 	}()
 }
 
-// Suppress ignores clipboard changes for d, for writes the app makes itself.
-func (w *Watcher) Suppress(d time.Duration) {
-	w.mu.Lock()
-	w.suppressUntil = time.Now().Add(d)
-	w.last = native.ChangeCount()
-	w.mu.Unlock()
-}
-
-// Resync makes the current clipboard the baseline.
+// Resync 将当前剪贴板变化计数设为采集基线
 func (w *Watcher) Resync() {
 	w.mu.Lock()
 	w.last = native.ChangeCount()
@@ -84,15 +76,14 @@ func (w *Watcher) poll() {
 	change := native.ChangeCount()
 	w.mu.Lock()
 	same := change == w.last
-	suppressed := time.Now().Before(w.suppressUntil)
 	if !same {
 		w.last = change
 	}
 	w.mu.Unlock()
-	if same || suppressed {
+	if same {
 		return
 	}
-	rec, err := w.Capture()
+	rec, err := w.captureClipboard(change)
 	if err != nil {
 		if w.onError != nil {
 			w.onError(err)
@@ -107,17 +98,47 @@ func (w *Watcher) poll() {
 	}
 }
 
-// Capture 应用排除规则并在一次存储提交中保存剪贴板内容与来源图标
-func (w *Watcher) Capture() (*types.Record, error) {
+// captureClipboard 在主线程读取同一次剪贴板变化的来源与内容快照
+func (w *Watcher) captureClipboard(change int64) (*types.Record, error) {
+	var data transfer.Data
+	var app native.App
+	var err error
+	mygo.RunOnMain(func() {
+		current, source := native.ClipboardSource()
+		if current != change {
+			return
+		}
+		app = source
+		formats := mygo.Clipboard.Formats()
+		if excludedClipboard(formats, app, w.st.Settings()) {
+			return
+		}
+		if containsFormat(formats, transfer.FileList) {
+			data, err = mygo.Clipboard.Read(transfer.FileList, transfer.URIList)
+		} else {
+			data, err = mygo.Clipboard.Read(transfer.URIList, transfer.Text, transfer.HTML, transfer.Markdown, transfer.PNG,
+				ownClipboardFormat, "org.nspasteboard.ConcealedType", "ExcludeClipboardContentFromMonitorProcessing")
+		}
+		if native.ChangeCount() != change {
+			data, err = transfer.Data{}, nil
+		}
+	})
+	if errors.Is(err, mygo.ErrClipboardChanged) || errors.Is(err, transfer.ErrFormat) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return w.capture(data, app)
+}
+
+// capture 应用排除规则并一次保存内容快照与来源图标
+func (w *Watcher) capture(data transfer.Data, app native.App) (*types.Record, error) {
 	settings := w.st.Settings()
-	app := native.Frontmost()
-	if excludedApp(app.ID, settings.ExcludedApps) {
+	if excludedClipboard(data.Formats(), app, settings) {
 		return nil, nil
 	}
-	if settings.ExcludeConfidential && confidentialContent(mygo.Clipboard.Formats()) {
-		return nil, nil
-	}
-	rec, image, err := w.build()
+	rec, image, err := w.build(data)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +148,12 @@ func (w *Watcher) Capture() (*types.Record, error) {
 	icon := w.fillSource(rec, app)
 	saved, _, err := w.st.Capture(rec, image, icon)
 	return saved, err
+}
+
+// excludedClipboard 判断本次内容是否来自自身写入、排除应用或已启用的机密规则
+func excludedClipboard(formats []transfer.Format, app native.App, settings types.Settings) bool {
+	return containsFormat(formats, ownClipboardFormat) || excludedApp(app.ID, settings.ExcludedApps) ||
+		settings.ExcludeConfidential && confidentialContent(formats)
 }
 
 // excludedContent 按空白文本规则与已启用的图片大小上限判断是否跳过记录
@@ -156,15 +183,15 @@ func excludedApp(appID string, apps []types.ExcludedApp) bool {
 	return false
 }
 
-// build 读取剪贴板内容并暂存原始图片字节而不提前落盘
-func (w *Watcher) build() (*types.Record, []byte, error) {
+// build 从内容快照生成记录并暂存原始图片字节
+func (w *Watcher) build(data transfer.Data) (*types.Record, []byte, error) {
 	// Files first: copying files in Finder or Explorer also offers their
 	// names as text, and an image preview on some sources.
-	if paths, err := mygo.Clipboard.ReadFiles(); err == nil && len(paths) > 0 {
+	if paths, err := data.Files(); err == nil && len(paths) > 0 {
 		return w.buildFiles(paths), nil, nil
 	}
 
-	formats := mygo.Clipboard.Formats()
+	formats := data.Formats()
 	hasPNG := containsFormat(formats, transfer.PNG)
 	hasHTML := containsFormat(formats, transfer.HTML)
 	hasText := containsFormat(formats, transfer.Text) || containsFormat(formats, transfer.Markdown)
@@ -175,12 +202,12 @@ func (w *Watcher) build() (*types.Record, []byte, error) {
 
 	var htmlStr, text string
 	if hasHTML {
-		if b, err := mygo.Clipboard.ReadFormat(transfer.HTML); err == nil {
+		if b, err := data.Read(transfer.HTML); err == nil {
 			htmlStr = string(b)
 		}
 	}
 	if hasText {
-		if b, err := mygo.Clipboard.ReadFormat(transfer.Text); err == nil {
+		if b, err := data.Read(transfer.Text); err == nil {
 			text = string(b)
 		}
 	}
@@ -191,7 +218,7 @@ func (w *Watcher) build() (*types.Record, []byte, error) {
 	// An image wins only when the payload is not real formatted text: a
 	// spreadsheet range or a rich document also offers a bitmap.
 	if hasPNG {
-		png, err := mygo.Clipboard.ReadFormat(transfer.PNG)
+		png, err := data.Read(transfer.PNG)
 		if err == nil && len(png) > 0 && !detect.HTMLHasText(htmlStr) && len([]rune(strings.TrimSpace(text))) < 200 {
 			rec := &types.Record{Kind: types.KindImage, Text: ""}
 			format, wpx, hpx, animated := detect.ImageInfo(png)

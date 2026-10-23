@@ -4,14 +4,16 @@ English | [简体中文](README.zh-CN.md)
 
 A clipboard manager for macOS and Windows, built with Go and [MyGo](https://github.com/egoist/mygo).
 
+[Screenshots](docs/screenshots.md)
+
 ## Features
 
-- Clipboard history for text, images, links, colors and files, with source apps and timestamps
-- Search, manual lists and rule-based smart lists
-- Previews, drag and drop, formatted paste and plain-text paste
-- Exclusion rules for apps, confidential content, whitespace-only content and image size
-- A bottom bar or a floating panel near the cursor, both resizable
-- Classic and Liquid Glass themes, with English and Simplified Chinese
+- Keep a history of copied text, images, links, colors and files, with the source app and copy time
+- Search your history, organize items in regular lists, or filter them with smart lists
+- Preview and drag items, and paste with formatting or as plain text
+- Choose which apps to exclude, and skip blank text, content marked confidential or images above a size limit
+- Use a resizable bottom bar or a panel that opens beside the cursor
+- Choose Classic or Liquid Glass, in English or Simplified Chinese
 
 ## MyGo
 
@@ -24,35 +26,22 @@ GoPaste uses [MyGo](https://github.com/egoist/mygo)'s native UI:
 
 ## Memory usage
 
-### 220 records
+Measured on October 23, 2026 with a local arm64 development build on macOS 27.0.1, Apple M1 Pro and 32 GB RAM.
 
-Measured locally on October 23, 2026: GoPaste 0.1.0 arm64, macOS 27.0.1, Apple M1 Pro, 32 GB RAM. The history contained 220 records, including 42 image records.
+The test used 2,000 records: 800 text, 500 image, 400 file, 200 link and 100 color records. Samples included 4K images, roughly 1 MiB of text in one record and 600 files in another.
 
-| Metric | Physical memory footprint |
+| Scenario | Memory usage |
 | --- | --- |
-| Current sample | About 63 MB |
-| Peak during this session | About 122 MB |
+| History loaded | 46.2 MiB |
+| Panel open | 68.1 MiB |
+| Scrolled to record 2,000 | 183.8 MiB |
+| Bottom bar resized repeatedly | 171.5 MiB |
+| Panel hidden after testing | 104.8 MiB |
+| Peak during each run | 202.1 MiB |
 
-Measured using the Physical footprint metric from `vmmap -summary`. Usage varies with images, previews and workload.
+Values are medians of three runs, using the Physical footprint metric from `vmmap -summary` after three seconds idle at each stage, without forcing garbage collection.
 
-### 2,000 records
-
-Measured on October 23, 2026 with a local development build (arm64), macOS 27.0.1, Apple M1 Pro and 32 GB RAM.
-
-The test used 2,000 generated records: 800 text, 500 image, 400 file, 200 link and 100 color records. Samples included 4K images, roughly 1 MiB of text in one record and 600 files in another.
-
-| Scenario | Physical memory footprint, median of three runs |
-| --- | --- |
-| All records loaded | 123.4 MiB |
-| Panel open | 133.2 MiB |
-| Scrolled to record 2,000 | 108.0 MiB |
-| Bottom bar resized repeatedly | 131.5 MiB |
-| Panel hidden after testing | 133.0 MiB |
-| Peak during each run | 199.3 MiB |
-
-Measured using `vmmap -summary` after three seconds idle at each stage, without forcing garbage collection. Peaks ranged from 199.0 to 207.4 MiB across the three runs.
-
-The test exercised storage and UI in a separate native window, without clipboard monitoring, the tray or the updater. These figures are not a full-app benchmark. Windows has not been measured yet.
+The test covered storage and UI in a native window, without clipboard monitoring, the tray or the updater. Windows has not been measured yet.
 
 ## Install and use
 

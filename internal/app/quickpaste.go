@@ -62,7 +62,7 @@ func (a *App) quickPaste(c *ui.Context) bool {
 	for i := first; i < last; i++ {
 		if c.Shortcut(ui.Cmd, quickPasteKeys[i-first]) && a.once() {
 			a.sel = i
-			rec := a.vis[i]
+			rec := a.recordAt(i)
 			a.later(func() { a.paste(rec, false) })
 			return true
 		}

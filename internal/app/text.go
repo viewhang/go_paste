@@ -157,13 +157,13 @@ func recordTitle(r *types.Record) string {
 	case types.KindColor:
 		return r.Color
 	case types.KindFile:
-		if len(r.Files) == 0 {
+		if recordFileCount(r) == 0 {
 			return locales.FileKind()
 		}
-		if len(r.Files) == 1 {
+		if recordFileCount(r) == 1 {
 			return r.Files[0].Name
 		}
-		return locales.FileGroupTitle(r.Files[0].Name, len(r.Files))
+		return locales.FileGroupTitle(r.Files[0].Name, recordFileCount(r))
 	case types.KindImage:
 		if r.ImageW > 0 {
 			return fmt.Sprintf("%d × %d", r.ImageW, r.ImageH)
@@ -189,4 +189,12 @@ func prettyHotkey(acc string) string {
 		"Ctrl+", "⌃", "Alt+", "⌥", "Shift+", "⇧",
 		"Enter", "⏎", "Space", "␣",
 	).Replace(acc)
+}
+
+// recordFileCount 返回摘要或完整记录的文件数量
+func recordFileCount(r *types.Record) int {
+	if r.Summary {
+		return r.FileCount
+	}
+	return len(r.Files)
 }

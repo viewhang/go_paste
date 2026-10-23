@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"log"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -166,26 +165,6 @@ func (s *Store) pruneLocked(records []*types.Record) ([]*types.Record, error) {
 		}
 	}
 	return kept, nil
-}
-
-// commitLocked 先提交索引再更新内存并回收失去最后引用的资源
-func (s *Store) commitLocked(next []*types.Record, candidates map[string]int64) error {
-	if candidates == nil {
-		candidates = make(map[string]int64)
-	}
-	for name := range references(s.records) {
-		candidates[name] = 0
-	}
-	if err := writeJSON(filepath.Join(s.dir, indexFile), index{Version: 1, Records: next}); err != nil {
-		return err
-	}
-	s.records = next
-	s.byID = make(map[string]*types.Record, len(next))
-	for _, r := range next {
-		s.byID[r.ID] = r
-	}
-	s.removeUnusedLocked(candidates)
-	return nil
 }
 
 // removeUnusedLocked 仅回收候选文件中已经没有记录引用的资源
