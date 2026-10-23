@@ -81,9 +81,6 @@ func AccessibilityTrusted() bool { return true }
 // PromptAccessibility does nothing on Windows.
 func PromptAccessibility() {}
 
-// OpenAccessibilitySettings does nothing on Windows.
-func OpenAccessibilitySettings() {}
-
 // PasteKeystroke posts Ctrl-V to the foreground window.
 func PasteKeystroke() error {
 	procKeybdEvent.Call(vkControl, 0, 0, 0)

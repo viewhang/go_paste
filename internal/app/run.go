@@ -22,8 +22,7 @@ func Run() {
 	mygo.App.SetName("GoPaste")
 	// No Dock icon and no app switcher entry: the app lives in the menu bar.
 	mygo.App.SetActivationPolicy(mygo.ActivationPolicyAccessory)
-	// Closing the settings or the guide leaves the app running in the menu
-	// bar, its panel hidden rather than closed.
+	// 关闭设置窗口后继续驻留菜单栏，面板仅隐藏而不关闭
 	mygo.App.OnWindowAllClosed(func() {})
 
 	if !mygo.App.RequestSingleInstanceLock() {

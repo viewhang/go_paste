@@ -1,16 +1,12 @@
 package app
 
 import (
-	"bytes"
 	"container/list"
-	"image"
 	"math"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-	"golang.org/x/image/draw"
 
-	"gopaste/internal/assets"
 	"gopaste/internal/native"
 )
 
@@ -136,28 +132,6 @@ func (a *App) previewBitmap(name string, size float32) *ui.Bitmap {
 		}
 	}
 	return a.previewImage.image
-}
-
-// appMark 缩小并缓存引导页展示的应用图标
-func (a *App) appMark() *ui.Bitmap {
-	if a.obWin != nil {
-		a.imageScale = mygo.Screen.DisplayMatching(a.obWin.Bounds()).ScaleFactor
-	}
-	key := bitmapKey{name: "app:GoPaste", side: a.imagePixels(48)}
-	if b, ok := a.images.get(key); ok {
-		return b
-	}
-	img, _, err := image.Decode(bytes.NewReader(assets.AppIcon))
-	if err != nil {
-		return a.images.put(key, nil)
-	}
-	w, h := img.Bounds().Dx(), img.Bounds().Dy()
-	if side := max(w, h); side > key.side {
-		w, h = max(1, w*key.side/side), max(1, h*key.side/side)
-	}
-	out := image.NewRGBA(image.Rect(0, 0, w, h))
-	draw.ApproxBiLinear.Scale(out, out.Bounds(), img, img.Bounds(), draw.Src, nil)
-	return a.images.put(key, ui.NewBitmap(out))
 }
 
 // fileIcon 读取并缓存受统一字节预算限制的文件图标
