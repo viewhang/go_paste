@@ -80,8 +80,12 @@ jobs:
           security find-certificate -a -p "$keychain" > "$RUNNER_TEMP/gopaste.pem"
           sudo security add-trusted-cert -d -r trustRoot -p codeSign -k "$keychain" "$RUNNER_TEMP/gopaste.pem"
 
-      - name: 运行测试
-        run: go test ./...
+      - name: 运行应用测试
+        run: go test . ./internal/...
+
+      - name: 验证 macOS 打包工具
+        if: runner.os == 'macOS'
+        run: go test ./tools/package
 
       - name: 构建 macOS 应用与更新包
         if: runner.os == 'macOS'
