@@ -78,6 +78,7 @@ func (a *App) settingsContent(c *ui.Context, p palette, title string) {
 				a.settingsData(c, p)
 			case "about":
 				a.settingsUpdates(c, p)
+				ui.Link(c, locales.Feedback(), "https://github.com/viewhang/go_paste/issues")
 			}
 		})
 	})

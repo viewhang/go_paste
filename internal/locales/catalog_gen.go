@@ -75,6 +75,14 @@ func (msgs Messages) About() string {
 	return Catalog.Format(msgs.locale, "about", nil)
 }
 
+// Feedback 返回应用当前语言的反馈入口文案
+func Feedback() string { return In(i18n.Locale()).Feedback() }
+
+// Feedback 返回指定语言的反馈入口文案
+func (msgs Messages) Feedback() string {
+	return Catalog.Format(msgs.locale, "feedback", nil)
+}
+
 // Done says "完成"
 // in the language the app shows.
 func Done() string { return In(i18n.Locale()).Done() }
@@ -1185,16 +1193,6 @@ func (msgs Messages) InstallingUpdates() string {
 	return Catalog.Format(msgs.locale, "installingUpdates", nil)
 }
 
-// UpdatesUnavailable says "当前构建未启用自动更新，或应用所在目录不可写。"
-// in the language the app shows.
-func UpdatesUnavailable() string { return In(i18n.Locale()).UpdatesUnavailable() }
-
-// UpdatesUnavailable says "当前构建未启用自动更新，或应用所在目录不可写。"
-// in the language of msgs.
-func (msgs Messages) UpdatesUnavailable() string {
-	return Catalog.Format(msgs.locale, "updatesUnavailable", nil)
-}
-
 // AutoCheckUpdates says "自动检查更新"
 // in the language the app shows.
 func AutoCheckUpdates() string { return In(i18n.Locale()).AutoCheckUpdates() }
@@ -1205,16 +1203,6 @@ func (msgs Messages) AutoCheckUpdates() string {
 	return Catalog.Format(msgs.locale, "autoCheckUpdates", nil)
 }
 
-// AutoCheckUpdatesHint says "启动后检查新版本，运行期间每天检查一次。"
-// in the language the app shows.
-func AutoCheckUpdatesHint() string { return In(i18n.Locale()).AutoCheckUpdatesHint() }
-
-// AutoCheckUpdatesHint says "启动后检查新版本，运行期间每天检查一次。"
-// in the language of msgs.
-func (msgs Messages) AutoCheckUpdatesHint() string {
-	return Catalog.Format(msgs.locale, "autoCheckUpdatesHint", nil)
-}
-
 // AutoInstallUpdates says "自动下载安装"
 // in the language the app shows.
 func AutoInstallUpdates() string { return In(i18n.Locale()).AutoInstallUpdates() }
@@ -1223,16 +1211,6 @@ func AutoInstallUpdates() string { return In(i18n.Locale()).AutoInstallUpdates()
 // in the language of msgs.
 func (msgs Messages) AutoInstallUpdates() string {
 	return Catalog.Format(msgs.locale, "autoInstallUpdates", nil)
-}
-
-// AutoInstallUpdatesHint says "后台安装，下次启动生效"
-// in the language the app shows.
-func AutoInstallUpdatesHint() string { return In(i18n.Locale()).AutoInstallUpdatesHint() }
-
-// AutoInstallUpdatesHint says "后台安装，下次启动生效"
-// in the language of msgs.
-func (msgs Messages) AutoInstallUpdatesHint() string {
-	return Catalog.Format(msgs.locale, "autoInstallUpdatesHint", nil)
 }
 
 // WelcomeTitle says "欢迎使用 GoPaste"

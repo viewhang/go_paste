@@ -22,12 +22,11 @@ func (a *App) settingsUpdates(c *ui.Context, p palette) {
 				}
 			})
 			if !a.updatesEnabled {
-				ui.Text(c, locales.UpdatesUnavailable()).FontSize(11).TextColor(p.muted)
 				return
 			}
 			ui.Divider(c)
 			automatic := updater.AutomaticChecks()
-			settingRow(c, p, locales.AutoCheckUpdates(), locales.AutoCheckUpdatesHint(), func() {
+			settingRow(c, p, locales.AutoCheckUpdates(), "", func() {
 				ui.Switch(c, &automatic).Label(locales.AutoCheckUpdates())
 			})
 			if automatic != updater.AutomaticChecks() {
@@ -35,7 +34,7 @@ func (a *App) settingsUpdates(c *ui.Context, p palette) {
 			}
 			ui.Divider(c)
 			download := updater.AutomaticDownloads()
-			settingRow(c, p, locales.AutoInstallUpdates(), locales.AutoInstallUpdatesHint(), func() {
+			settingRow(c, p, locales.AutoInstallUpdates(), "", func() {
 				ui.Switch(c, &download).Label(locales.AutoInstallUpdates()).Disabled(!automatic)
 			})
 			if download != updater.AutomaticDownloads() {
