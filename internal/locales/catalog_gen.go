@@ -1213,86 +1213,6 @@ func (msgs Messages) AutoInstallUpdates() string {
 	return Catalog.Format(msgs.locale, "autoInstallUpdates", nil)
 }
 
-// WelcomeTitle says "欢迎使用 GoPaste"
-// in the language the app shows.
-func WelcomeTitle() string { return In(i18n.Locale()).WelcomeTitle() }
-
-// WelcomeTitle says "欢迎使用 GoPaste"
-// in the language of msgs.
-func (msgs Messages) WelcomeTitle() string {
-	return Catalog.Format(msgs.locale, "welcomeTitle", nil)
-}
-
-// WelcomeTagline says "复制过的内容，随时找回来"
-// in the language the app shows.
-func WelcomeTagline() string { return In(i18n.Locale()).WelcomeTagline() }
-
-// WelcomeTagline says "复制过的内容，随时找回来"
-// in the language of msgs.
-func (msgs Messages) WelcomeTagline() string {
-	return Catalog.Format(msgs.locale, "welcomeTagline", nil)
-}
-
-// OnboardCopy says "照常复制"
-// in the language the app shows.
-func OnboardCopy() string { return In(i18n.Locale()).OnboardCopy() }
-
-// OnboardCopy says "照常复制"
-// in the language of msgs.
-func (msgs Messages) OnboardCopy() string {
-	return Catalog.Format(msgs.locale, "onboardCopy", nil)
-}
-
-// OnboardCopyHint says "文本、图片、链接、颜色和文件都会被收进卡片，附上时间和来源应用。"
-// in the language the app shows.
-func OnboardCopyHint() string { return In(i18n.Locale()).OnboardCopyHint() }
-
-// OnboardCopyHint says "文本、图片、链接、颜色和文件都会被收进卡片，附上时间和来源应用。"
-// in the language of msgs.
-func (msgs Messages) OnboardCopyHint() string {
-	return Catalog.Format(msgs.locale, "onboardCopyHint", nil)
-}
-
-// OnboardOrganize says "搜索与整理"
-// in the language the app shows.
-func OnboardOrganize() string { return In(i18n.Locale()).OnboardOrganize() }
-
-// OnboardOrganize says "搜索与整理"
-// in the language of msgs.
-func (msgs Messages) OnboardOrganize() string {
-	return Catalog.Format(msgs.locale, "onboardOrganize", nil)
-}
-
-// OnboardOrganizeHint says "输入关键词筛选，Space 预览，用普通列表手动整理或智能列表自动归类。"
-// in the language the app shows.
-func OnboardOrganizeHint() string { return In(i18n.Locale()).OnboardOrganizeHint() }
-
-// OnboardOrganizeHint says "输入关键词筛选，Space 预览，用普通列表手动整理或智能列表自动归类。"
-// in the language of msgs.
-func (msgs Messages) OnboardOrganizeHint() string {
-	return Catalog.Format(msgs.locale, "onboardOrganizeHint", nil)
-}
-
-// OnboardFormHint says "随时可以在设置里切换，两种形态共用同一份历史。"
-// in the language the app shows.
-func OnboardFormHint() string { return In(i18n.Locale()).OnboardFormHint() }
-
-// OnboardFormHint says "随时可以在设置里切换，两种形态共用同一份历史。"
-// in the language of msgs.
-func (msgs Messages) OnboardFormHint() string {
-	return Catalog.Format(msgs.locale, "onboardFormHint", nil)
-}
-
-// GetStarted says "开始使用"
-// in the language the app shows.
-func GetStarted() string { return In(i18n.Locale()).GetStarted() }
-
-// GetStarted says "开始使用"
-// in the language of msgs.
-func (msgs Messages) GetStarted() string {
-	return Catalog.Format(msgs.locale, "getStarted", nil)
-}
-
 // OpenSettings says "打开设置"
 // in the language the app shows.
 func OpenSettings() string { return In(i18n.Locale()).OpenSettings() }
@@ -1301,56 +1221,6 @@ func OpenSettings() string { return In(i18n.Locale()).OpenSettings() }
 // in the language of msgs.
 func (msgs Messages) OpenSettings() string {
 	return Catalog.Format(msgs.locale, "openSettings", nil)
-}
-
-// AccessStep says "还差一步：允许自动粘贴"
-// in the language the app shows.
-func AccessStep() string { return In(i18n.Locale()).AccessStep() }
-
-// AccessStep says "还差一步：允许自动粘贴"
-// in the language of msgs.
-func (msgs Messages) AccessStep() string {
-	return Catalog.Format(msgs.locale, "accessStep", nil)
-}
-
-// AccessGranted says "已允许自动粘贴"
-// in the language the app shows.
-func AccessGranted() string { return In(i18n.Locale()).AccessGranted() }
-
-// AccessGranted says "已允许自动粘贴"
-// in the language of msgs.
-func (msgs Messages) AccessGranted() string {
-	return Catalog.Format(msgs.locale, "accessGranted", nil)
-}
-
-// AccessExplanation says "复制内容始终可用；要让它替你在当前应用里按下粘贴，macOS 需要“辅助功能”权限。"
-// in the language the app shows.
-func AccessExplanation() string { return In(i18n.Locale()).AccessExplanation() }
-
-// AccessExplanation says "复制内容始终可用；要让它替你在当前应用里按下粘贴，macOS 需要“辅助功能”权限。"
-// in the language of msgs.
-func (msgs Messages) AccessExplanation() string {
-	return Catalog.Format(msgs.locale, "accessExplanation", nil)
-}
-
-// OpenSystemSettings says "打开系统设置"
-// in the language the app shows.
-func OpenSystemSettings() string { return In(i18n.Locale()).OpenSystemSettings() }
-
-// OpenSystemSettings says "打开系统设置"
-// in the language of msgs.
-func (msgs Messages) OpenSystemSettings() string {
-	return Catalog.Format(msgs.locale, "openSystemSettings", nil)
-}
-
-// AccessNoRestart says "授权后无需重启"
-// in the language the app shows.
-func AccessNoRestart() string { return In(i18n.Locale()).AccessNoRestart() }
-
-// AccessNoRestart says "授权后无需重启"
-// in the language of msgs.
-func (msgs Messages) AccessNoRestart() string {
-	return Catalog.Format(msgs.locale, "accessNoRestart", nil)
 }
 
 // ShortcutToggle says "呼出面板"
@@ -1777,36 +1647,6 @@ func PanelHint(paste string, preview string) string {
 // in the language of msgs.
 func (msgs Messages) PanelHint(paste string, preview string) string {
 	return Catalog.Format(msgs.locale, "panelHint", map[string]any{"paste": paste, "preview": preview})
-}
-
-// PressShortcut says "按下 {shortcut}"
-// in the language the app shows.
-func PressShortcut(shortcut string) string { return In(i18n.Locale()).PressShortcut(shortcut) }
-
-// PressShortcut says "按下 {shortcut}"
-// in the language of msgs.
-func (msgs Messages) PressShortcut(shortcut string) string {
-	return Catalog.Format(msgs.locale, "pressShortcut", map[string]any{"shortcut": shortcut})
-}
-
-// OnboardPasteHint says "面板出现在指针所在的屏幕，选一张卡片，{shortcut} 就粘到刚才的应用里。"
-// in the language the app shows.
-func OnboardPasteHint(shortcut string) string { return In(i18n.Locale()).OnboardPasteHint(shortcut) }
-
-// OnboardPasteHint says "面板出现在指针所在的屏幕，选一张卡片，{shortcut} 就粘到刚才的应用里。"
-// in the language of msgs.
-func (msgs Messages) OnboardPasteHint(shortcut string) string {
-	return Catalog.Format(msgs.locale, "onboardPasteHint", map[string]any{"shortcut": shortcut})
-}
-
-// OnboardReady says "一切就绪，按 {shortcut} 呼出历史。"
-// in the language the app shows.
-func OnboardReady(shortcut string) string { return In(i18n.Locale()).OnboardReady(shortcut) }
-
-// OnboardReady says "一切就绪，按 {shortcut} 呼出历史。"
-// in the language of msgs.
-func (msgs Messages) OnboardReady(shortcut string) string {
-	return Catalog.Format(msgs.locale, "onboardReady", map[string]any{"shortcut": shortcut})
 }
 
 // LastUpdateCheck says "上次检查：{date, date, short} {date, time, short}"

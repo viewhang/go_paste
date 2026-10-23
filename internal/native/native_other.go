@@ -21,8 +21,5 @@ func AccessibilityTrusted() bool { return true }
 // PromptAccessibility does nothing here.
 func PromptAccessibility() {}
 
-// OpenAccessibilitySettings does nothing here.
-func OpenAccessibilitySettings() {}
-
 // PasteKeystroke is not implemented on this platform.
 func PasteKeystroke() error { return errors.New("automatic paste is not supported on this platform") }

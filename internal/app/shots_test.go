@@ -130,13 +130,6 @@ func TestShots(t *testing.T) {
 			writePNG(t, filepath.Join(out, shot.name+"-"+page+".png"), set.Image())
 		}
 	}
-	a.settings.Theme = themeClassic
-
-	guide := ui.NewTester(a.onboardingView, 540, 570)
-	for i := 0; i < 3; i++ {
-		guide.Frame()
-	}
-	writePNG(t, filepath.Join(out, "onboarding.png"), guide.Image())
 }
 
 func writePNG(t *testing.T, path string, img image.Image) {

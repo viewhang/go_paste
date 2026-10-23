@@ -126,7 +126,6 @@ type Settings struct {
 	HistoryLimitMiB int  `json:"historyLimitMiB"`
 	RetentionDays   int  `json:"retentionDays"`
 	LaunchAtLogin   bool `json:"launchAtLogin"`
-	Onboarded       bool `json:"onboarded"`
 	Paused          bool `json:"paused"`
 	// ExcludedApps 保存用户可增删的默认及自定义排除应用
 	ExcludedApps []ExcludedApp `json:"excludedApps"`

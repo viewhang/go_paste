@@ -61,7 +61,6 @@ type App struct {
 	watch  *clip.Watcher
 	win    *mygo.Window
 	setWin *mygo.Window
-	obWin  *mygo.Window
 	tray   *mygo.Tray
 
 	settings types.Settings
@@ -131,7 +130,7 @@ func NewApp() *App {
 	}
 }
 
-// ready 初始化应用资源并启动剪贴板记录
+// ready 初始化应用资源、启动剪贴板记录并在手动启动时显示面板
 func (a *App) ready() {
 	a.updatesEnabled = mygo.Updater.Enabled()
 	dir, err := mygo.App.Path(mygo.PathUserData)
@@ -202,9 +201,7 @@ func (a *App) ready() {
 	a.scheduleLinkPreviews()
 	a.applyHotkey()
 
-	if !a.settings.Onboarded {
-		a.showOnboarding()
-	} else if !mygo.App.WasOpenedAtLogin() {
+	if !mygo.App.WasOpenedAtLogin() {
 		a.show()
 	}
 }

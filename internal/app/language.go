@@ -38,7 +38,4 @@ func (a *App) refreshLanguage(string) {
 	if a.setWin != nil {
 		a.setWin.SetTitle(locales.SettingsTitle())
 	}
-	if a.obWin != nil {
-		a.obWin.SetTitle(locales.WelcomeTitle())
-	}
 }

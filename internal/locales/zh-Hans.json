@@ -118,20 +118,7 @@
   "installingUpdates": "正在安装更新",
   "autoCheckUpdates": "自动检查更新",
   "autoInstallUpdates": "自动下载安装",
-  "welcomeTitle": "欢迎使用 GoPaste",
-  "welcomeTagline": "复制过的内容，随时找回来",
-  "onboardCopy": "照常复制",
-  "onboardCopyHint": "文本、图片、链接、颜色和文件都会被收进卡片，附上时间和来源应用。",
-  "onboardOrganize": "搜索与整理",
-  "onboardOrganizeHint": "输入关键词筛选，Space 预览，用普通列表手动整理或智能列表自动归类。",
-  "onboardFormHint": "随时可以在设置里切换，两种形态共用同一份历史。",
-  "getStarted": "开始使用",
   "openSettings": "打开设置",
-  "accessStep": "还差一步：允许自动粘贴",
-  "accessGranted": "已允许自动粘贴",
-  "accessExplanation": "复制内容始终可用；要让它替你在当前应用里按下粘贴，macOS 需要“辅助功能”权限。",
-  "openSystemSettings": "打开系统设置",
-  "accessNoRestart": "授权后无需重启",
   "shortcutToggle": "呼出面板",
   "shortcutCopy": "复制选中记录",
   "shortcutSearch": "聚焦搜索",
@@ -326,30 +313,6 @@
         "type": "String"
       },
       "preview": {
-        "type": "String"
-      }
-    }
-  },
-  "pressShortcut": "按下 {shortcut}",
-  "@pressShortcut": {
-    "placeholders": {
-      "shortcut": {
-        "type": "String"
-      }
-    }
-  },
-  "onboardPasteHint": "面板出现在指针所在的屏幕，选一张卡片，{shortcut} 就粘到刚才的应用里。",
-  "@onboardPasteHint": {
-    "placeholders": {
-      "shortcut": {
-        "type": "String"
-      }
-    }
-  },
-  "onboardReady": "一切就绪，按 {shortcut} 呼出历史。",
-  "@onboardReady": {
-    "placeholders": {
-      "shortcut": {
         "type": "String"
       }
     }

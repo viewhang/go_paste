@@ -279,15 +279,6 @@ func PromptAccessibility() {
 	})
 }
 
-// OpenAccessibilitySettings opens the Accessibility pane of System Settings.
-func OpenAccessibilitySettings() {
-	load()
-	withPool(func() {
-		url := nsString("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
-		send(class("NSWorkspace"), "openURL:", uintptr(url))
-	})
-}
-
 // PasteKeystroke posts Command-V to the frontmost application.
 func PasteKeystroke() error {
 	if !AccessibilityTrusted() {
