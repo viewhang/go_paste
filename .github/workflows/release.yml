@@ -39,9 +39,6 @@ jobs:
           - runner: windows-2025
             platform: windows
             arch: amd64
-    defaults:
-      run:
-        shell: bash
     steps:
       - name: 检出版本标签
         uses: actions/checkout@v7
@@ -55,6 +52,7 @@ jobs:
           go-version-file: go.mod
 
       - name: 核对发布版本与更新签名配置
+        shell: bash
         env:
           MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
         run: |
