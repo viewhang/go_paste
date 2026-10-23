@@ -108,6 +108,7 @@ jobs:
           name: GoPaste-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             build/${{ matrix.platform }}-${{ matrix.arch }}/*.tar.gz
+            build/${{ matrix.platform }}-${{ matrix.arch }}/*.delta
             build/${{ matrix.platform }}-${{ matrix.arch }}/update-*.json
             build/${{ matrix.platform }}-${{ matrix.arch }}/* Setup *.exe
           if-no-files-found: error
