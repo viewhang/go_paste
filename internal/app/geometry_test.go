@@ -11,6 +11,42 @@ import (
 	"gopaste/internal/types"
 )
 
+// TestPointerPanelAvoidsCursor 验证浮动面板在屏幕边缘和大尺寸下避开鼠标并保留已保存尺寸
+func TestPointerPanelAvoidsCursor(t *testing.T) {
+	area := mygo.Rectangle{X: -1440, Y: 24, Width: 1440, Height: 876}
+	for _, tc := range []struct {
+		name     string
+		point    mygo.Point
+		area     mygo.Rectangle
+		settings types.Settings
+	}{
+		{name: "屏幕中央", point: mygo.Point{X: -720, Y: 462}, area: area},
+		{name: "屏幕左侧", point: mygo.Point{X: -1430, Y: 462}, area: area},
+		{name: "屏幕右侧", point: mygo.Point{X: -10, Y: 462}, area: area},
+		{name: "屏幕顶部", point: mygo.Point{X: -720, Y: 34}, area: area},
+		{name: "屏幕底部", point: mygo.Point{X: -720, Y: 890}, area: area},
+		{name: "大尺寸面板", point: mygo.Point{X: -720, Y: 462}, area: area, settings: types.Settings{PanelWidth: 2000, PanelHeight: 1200}},
+		{name: "小屏幕", point: mygo.Point{X: 320, Y: 240}, area: mygo.Rectangle{Width: 640, Height: 480}},
+		{name: "上方屏幕", point: mygo.Point{X: -720, Y: -462}, area: mygo.Rectangle{X: -1440, Y: -900, Width: 1440, Height: 876}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := &App{form: formPanel, settings: tc.settings}
+			bounds := a.windowBounds(tc.point, tc.area)
+			if tc.point.X > bounds.X-18 && tc.point.X < bounds.X+bounds.Width+18 &&
+				tc.point.Y > bounds.Y-18 && tc.point.Y < bounds.Y+bounds.Height+18 {
+				t.Fatalf("面板未避开鼠标：鼠标 %+v，窗口 %+v", tc.point, bounds)
+			}
+			if bounds.Width <= 0 || bounds.Height <= 0 || bounds.X < tc.area.X+10 || bounds.Y < tc.area.Y+10 ||
+				bounds.X+bounds.Width > tc.area.X+tc.area.Width-10 || bounds.Y+bounds.Height > tc.area.Y+tc.area.Height-10 {
+				t.Fatalf("面板超出工作区：窗口 %+v，工作区 %+v", bounds, tc.area)
+			}
+			if !reflect.DeepEqual(a.settings, tc.settings) {
+				t.Fatal("自动避让鼠标覆盖了已保存尺寸")
+			}
+		})
+	}
+}
+
 // TestWindowBounds 验证两种形态的尺寸恢复、预览扩展和多屏工作区限制
 func TestWindowBounds(t *testing.T) {
 	area := mygo.Rectangle{X: -1440, Y: 24, Width: 1440, Height: 876}
@@ -29,7 +65,7 @@ func TestWindowBounds(t *testing.T) {
 		{name: "面板默认尺寸", form: formPanel, want: mygo.Rectangle{X: -442, Y: 236, Width: 432, Height: 596}},
 		{name: "面板恢复缩小尺寸", form: formPanel, settings: types.Settings{PanelWidth: 380, PanelHeight: 400}, want: mygo.Rectangle{X: -390, Y: 432, Width: 380, Height: 400}},
 		{name: "面板限制最小尺寸", form: formPanel, settings: types.Settings{PanelWidth: 100, PanelHeight: 100}, want: mygo.Rectangle{X: -370, Y: 512, Width: 360, Height: 320}},
-		{name: "面板限制最大尺寸", form: formPanel, settings: types.Settings{PanelWidth: 2000, PanelHeight: 1200}, want: mygo.Rectangle{X: -1430, Y: 34, Width: 1420, Height: 856}},
+		{name: "面板限制最大尺寸", form: formPanel, settings: types.Settings{PanelWidth: 2000, PanelHeight: 1200}, want: mygo.Rectangle{X: -1430, Y: 34, Width: 1372, Height: 856}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			a := &App{form: tc.form, preview: tc.preview, settings: tc.settings}

@@ -206,12 +206,33 @@ func TestStorageLegacyDedup(t *testing.T) {
 	}
 }
 
+// TestStoragePreservesDistinctText 验证原文的空白、大小写与格式差异不会因分类而合并
+func TestStoragePreservesDistinctText(t *testing.T) {
+	s := storageTest(t, 1)
+	for _, rec := range []*types.Record{
+		{Kind: types.KindLink, Text: "https://example.com", URL: "https://example.com"},
+		{Kind: types.KindLink, Text: " https://example.com ", URL: "https://example.com"},
+		{Kind: types.KindLink, Text: "https://example.com", URL: "https://example.com", HTML: "<a>链接</a>"},
+		{Kind: types.KindColor, Text: "#aBc", Color: "#aabbcc"},
+		{Kind: types.KindColor, Text: "#AbC", Color: "#aabbcc"},
+		{Kind: types.KindColor, Text: "#aBc", Color: "#aabbcc", HTML: "<b>#aBc</b>"},
+	} {
+		saved, merged, err := s.Capture(rec, nil, nil)
+		if err != nil || merged || saved.Text != rec.Text || saved.HTML != rec.HTML {
+			t.Fatalf("原始内容被合并或改写：%+v，%v", rec, err)
+		}
+	}
+	if len(s.List()) != 6 {
+		t.Fatal("丢失了不同的原始内容")
+	}
+}
+
 // TestStorageRestartDedup 验证各类内容重启后仍合并到原记录且保留整理信息
 func TestStorageRestartDedup(t *testing.T) {
 	s := storageTest(t, 1)
 	for _, r := range []*types.Record{
 		{Kind: types.KindText, Text: "内容", HTML: "<p>内容</p>"},
-		{Kind: types.KindLink, URL: "https://example.test/"},
+		{Kind: types.KindLink, Text: "https://example.test/", URL: "https://example.test/"},
 		{Kind: types.KindColor, Text: "#FF0000", Color: "#ff0000"},
 		{Kind: types.KindFile, Files: []types.FileRef{{Path: "/one"}, {Path: "/two"}}},
 		{Kind: types.KindImage, Image: "missing.png"},

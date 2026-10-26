@@ -284,7 +284,7 @@ func (a *App) cardMenu(c *ui.Context, m *ui.Menu, r *types.Record) {
 		if m.Item(locales.CopyURL()).Chosen() {
 			a.later(func() {
 				if full := a.fullRecord(r); full != nil {
-					a.copyText(full.URL)
+					a.copyText(full.Text)
 				}
 			})
 		}

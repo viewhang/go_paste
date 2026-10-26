@@ -22,22 +22,22 @@ import (
 )
 
 // writeClipboard 按记录类型将内容写回系统剪贴板
-func (a *App) writeClipboard(rec *types.Record, plain bool, colorFormat string) error {
-	data, err := a.clipboardData(rec, plain, colorFormat)
+func (a *App) writeClipboard(rec *types.Record, plain bool) error {
+	data, err := a.clipboardData(rec, plain)
 	if err != nil {
 		return err
 	}
 	return clip.Write(data)
 }
 
-// clipboardData 按记录类型与文本格式生成剪贴板数据
-func (a *App) clipboardData(rec *types.Record, plain bool, colorFormat string) (transfer.Data, error) {
+// clipboardData 保留记录原文与格式，仅在指定纯文本时移除 HTML
+func (a *App) clipboardData(rec *types.Record, plain bool) (transfer.Data, error) {
 	rec = a.fullRecord(rec)
 	if rec == nil {
 		return transfer.Data{}, fs.ErrNotExist
 	}
 	switch rec.Kind {
-	case types.KindText:
+	case types.KindText, types.KindLink, types.KindColor:
 		if !plain && rec.HTML != "" {
 			item := transfer.NewItem(
 				transfer.Bytes(transfer.HTML, []byte(rec.HTML)),
@@ -55,14 +55,6 @@ func (a *App) clipboardData(rec *types.Record, plain bool, colorFormat string) (
 			return transfer.Data{}, err
 		}
 		return transfer.New(transfer.NewItem(transfer.Bytes(transfer.PNG, data))), nil
-	case types.KindLink:
-		item := transfer.NewItem(
-			transfer.Bytes(transfer.URIList, []byte(rec.URL+"\r\n")),
-			transfer.Bytes(transfer.Text, []byte(rec.URL)),
-		)
-		return transfer.New(item), nil
-	case types.KindColor:
-		return transfer.TextData(ColorString(rec.Color, colorFormat)), nil
 	case types.KindFile:
 		var paths []string
 		for _, f := range rec.Files {
@@ -101,7 +93,7 @@ func (a *App) recordDrag(c *ui.Context, source ui.Element, rec *types.Record) {
 	}, transfer.DragOptions{Preview: preview, Hotspot: image.Pt(-12, -12)})
 }
 
-// dragData 在拖拽开始时创建数据并在目标请求图片时读取原文件
+// dragData 保留拖出内容的原文与格式并按需读取原始图片
 func (a *App) dragData(rec *types.Record) transfer.Data {
 	rec = a.fullRecord(rec)
 	if rec == nil {
@@ -113,11 +105,6 @@ func (a *App) dragData(rec *types.Record) transfer.Data {
 		return transfer.New(transfer.NewItem(transfer.Lazy(transfer.PNG, func() ([]byte, error) {
 			return a.st.ReadBlob(name)
 		})))
-	case types.KindLink:
-		return transfer.New(transfer.NewItem(
-			transfer.Bytes(transfer.URIList, []byte(rec.URL+"\r\n")),
-			transfer.Bytes(transfer.Text, []byte(rec.URL)),
-		))
 	case types.KindFile:
 		var paths []string
 		for _, f := range rec.Files {
@@ -125,8 +112,6 @@ func (a *App) dragData(rec *types.Record) transfer.Data {
 		}
 		data, _ := transfer.FileData(paths...)
 		return data
-	case types.KindColor:
-		return transfer.TextData(ColorString(rec.Color, "hex"))
 	}
 	if rec.HTML != "" {
 		return transfer.New(transfer.NewItem(

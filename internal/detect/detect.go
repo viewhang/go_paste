@@ -30,25 +30,15 @@ var (
 	blockRe = regexp.MustCompile(`(?i)</?(p|div|br|li|tr|h[1-6]|section|article|blockquote)\b[^>]*>`)
 )
 
-// URL reports the URL a text stands for. Bare domains get an https scheme.
+// URL 识别已有协议的 HTTP 链接并返回原始地址
 func URL(s string) (string, bool) {
-	s = strings.TrimSpace(s)
 	if s == "" || len(s) > 4096 {
 		return "", false
 	}
 	if strings.ContainsAny(s, " \t\r\n") {
 		return "", false
 	}
-	candidate := s
-	if !strings.Contains(candidate, "://") {
-		// A bare host needs a dot to be a host at all — localhost, which
-		// developers copy all day, being the exception.
-		if !strings.Contains(candidate, ".") && !strings.HasPrefix(strings.ToLower(candidate), "localhost") {
-			return "", false
-		}
-		candidate = "https://" + candidate
-	}
-	u, err := url.Parse(candidate)
+	u, err := url.Parse(s)
 	if err != nil {
 		return "", false
 	}
@@ -61,7 +51,7 @@ func URL(s string) (string, bool) {
 	if host == "" || (!strings.Contains(host, ".") && host != "localhost") {
 		return "", false
 	}
-	return u.String(), true
+	return s, true
 }
 
 // Color reports the color a text stands for, in #rrggbb or #rrggbbaa form.

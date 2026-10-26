@@ -9,6 +9,7 @@ import (
 	"testing"
 )
 
+// TestURL 验证仅识别已有协议的链接且不补全或改写地址
 func TestURL(t *testing.T) {
 	cases := []struct {
 		in   string
@@ -16,12 +17,19 @@ func TestURL(t *testing.T) {
 		ok   bool
 	}{
 		{"https://example.com/a?b=1", "https://example.com/a?b=1", true},
-		{"  https://example.com  ", "https://example.com", true},
-		{"example.com", "https://example.com", true},
-		{"www.example.com/path", "https://www.example.com/path", true},
-		{"10.0.0.5:15173", "https://10.0.0.5:15173", true},
-		{"localhost:5173", "https://localhost:5173", true},
+		{"  https://example.com  ", "", false},
+		{"example.com", "", false},
+		{"www.example.com/path", "", false},
+		{"10.0.0.5:15173", "", false},
+		{"localhost:5173", "", false},
 		{"https://localhost:8080/app", "https://localhost:8080/app", true},
+		{"user@example.com", "", false},
+		{"user.name+tag@example.co.uk", "", false},
+		{"mailto:user@example.com", "", false},
+		{"example.com/users/user@example.com", "", false},
+		{"example.com/?email=user@example.com", "", false},
+		{"https://user@example.com", "https://user@example.com", true},
+		{"HTTPS://Example.COM/路径?q=你好%2f", "HTTPS://Example.COM/路径?q=你好%2f", true},
 		{"hello world", "", false},
 		{"hello", "", false},
 		{"ftp://example.com/file", "", false},

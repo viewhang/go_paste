@@ -183,7 +183,7 @@ func excludedApp(appID string, apps []types.ExcludedApp) bool {
 	return false
 }
 
-// build 从内容快照生成记录并暂存原始图片字节
+// build 从内容快照生成记录并保留原始文本、HTML 与图片字节
 func (w *Watcher) build(data transfer.Data) (*types.Record, []byte, error) {
 	// Files first: copying files in Finder or Explorer also offers their
 	// names as text, and an image preview on some sources.
@@ -240,15 +240,11 @@ func (w *Watcher) build(data transfer.Data) (*types.Record, []byte, error) {
 		if u, ok := detect.URL(trimmed); ok {
 			rec.Kind = types.KindLink
 			rec.URL = u
-			rec.Text = trimmed
-			rec.HTML = ""
 			return rec, nil, nil
 		}
 		if c, ok := detect.Color(trimmed); ok {
 			rec.Kind = types.KindColor
 			rec.Color = c
-			rec.Text = trimmed
-			rec.HTML = ""
 			return rec, nil, nil
 		}
 	}

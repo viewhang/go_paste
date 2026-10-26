@@ -30,7 +30,7 @@ func cloneRecord(r *types.Record) *types.Record {
 	return &cp
 }
 
-// recordHash 根据持久化内容恢复指纹并兼容旧版文字与文件指纹
+// recordHash 按原始内容生成指纹并区分文本空白、大小写与格式
 func recordHash(r *types.Record) string {
 	var content string
 	switch r.Kind {
@@ -38,14 +38,10 @@ func recordHash(r *types.Record) string {
 		if r.Image != "" {
 			return "image:" + r.Image
 		}
-	case types.KindText:
+	case types.KindText, types.KindLink, types.KindColor:
 		if r.Text != "" || r.HTML != "" {
 			content = r.Text + "\x00" + r.HTML
 		}
-	case types.KindLink:
-		content = r.URL
-	case types.KindColor:
-		content = strings.ToLower(r.Text)
 	case types.KindFile:
 		paths := make([]string, len(r.Files))
 		for i, f := range r.Files {

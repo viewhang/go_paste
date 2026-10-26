@@ -8,6 +8,40 @@ import (
 	"gopaste/internal/types"
 )
 
+// TestBuildPreservesText 验证分类保留原始文本与 HTML 且不为域名或邮箱补全协议
+func TestBuildPreservesText(t *testing.T) {
+	w := &Watcher{}
+	for _, tc := range []struct {
+		text string
+		html string
+		kind types.Kind
+	}{
+		{text: "user@example.com", kind: types.KindText},
+		{text: "example.com", kind: types.KindText},
+		{text: "www.example.com/path", kind: types.KindText},
+		{text: "localhost:5173", kind: types.KindText},
+		{text: " \t原始文本\r\n", html: "<b>原始文本</b>", kind: types.KindText},
+		{text: " \tHTTPS://Example.COM/路径?q=你好%2f\r\n", html: "<a href='https://example.com'>链接</a>", kind: types.KindLink},
+		{text: " \t#aBc\r\n", html: "<span>#aBc</span>", kind: types.KindColor},
+		{text: "rgb(255, 0, 0)", kind: types.KindColor},
+	} {
+		data := transfer.New(transfer.NewItem(
+			transfer.Bytes(transfer.Text, []byte(tc.text)),
+			transfer.Bytes(transfer.HTML, []byte(tc.html)),
+		))
+		rec, _, err := w.build(data)
+		if err != nil || rec == nil {
+			t.Fatalf("采集 %q 失败：%v", tc.text, err)
+		}
+		if rec.Kind != tc.kind || rec.Text != tc.text || rec.HTML != tc.html {
+			t.Fatalf("分类改写了原始内容 %q：%+v", tc.text, rec)
+		}
+		if tc.kind == types.KindText && rec.URL != "" {
+			t.Fatalf("为普通文本 %q 补全了链接：%q", tc.text, rec.URL)
+		}
+	}
+}
+
 // TestExcludedContent 验证空白内容过滤、图片上限边界与关闭限制后的记录行为
 func TestExcludedContent(t *testing.T) {
 	settings := types.DefaultSettings()

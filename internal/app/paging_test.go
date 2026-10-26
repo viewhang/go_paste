@@ -59,7 +59,7 @@ func TestPagedHistoryActions(t *testing.T) {
 		if r.ID != fmt.Sprint(159-i) || !r.Summary {
 			t.Fatal("跨页记录错误")
 		}
-		data, err := a.clipboardData(r, false, "hex")
+		data, err := a.clipboardData(r, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -109,7 +109,7 @@ func TestPagedFileTransfer(t *testing.T) {
 	if len(summary.Files) != 3 || recordFileCount(summary) != 6 {
 		t.Fatal("文件摘要错误")
 	}
-	data, err := a.clipboardData(summary, false, "hex")
+	data, err := a.clipboardData(summary, false)
 	if err != nil {
 		t.Fatal(err)
 	}

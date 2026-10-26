@@ -122,7 +122,7 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 					a.later(func() { _ = mygo.Shell.OpenExternal(r.URL) })
 				}
 				if ui.Button(c, locales.CopyURL()).Clicked() {
-					a.later(func() { a.copyText(r.URL) })
+					a.later(func() { a.copyText(r.Text) })
 				}
 			})
 		})

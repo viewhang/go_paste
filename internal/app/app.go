@@ -365,13 +365,13 @@ func (a *App) place() {
 		a.win.SetMinimumSize(area.Width, min(minHeight, area.Height))
 		a.win.SetMaximumSize(area.Width, area.Height)
 	} else {
-		a.win.SetMinimumSize(min(panelMinWidth, area.Width-20), min(panelMinHeight, area.Height-20))
+		a.win.SetMinimumSize(min(panelMinWidth, bounds.Width), min(panelMinHeight, area.Height-20))
 		a.win.SetMaximumSize(area.Width-20, area.Height-20)
 	}
 	a.win.SetBounds(bounds)
 }
 
-// windowBounds 计算当前形态在屏幕工作区内的位置与尺寸
+// windowBounds 计算工作区内的窗口位置与尺寸并让浮动面板避开鼠标
 func (a *App) windowBounds(pt mygo.Point, area mygo.Rectangle) mygo.Rectangle {
 	if a.form == formBar {
 		h := max(a.settings.BarHeight, barHeight)
@@ -395,8 +395,19 @@ func (a *App) windowBounds(pt mygo.Point, area mygo.Rectangle) mygo.Rectangle {
 	if y+h > area.Y+area.Height-12 {
 		y = pt.Y - h - 18
 	}
-	x = clampInt(x, area.X+10, area.X+area.Width-w-10)
 	y = clampInt(y, area.Y+10, area.Y+area.Height-h-10)
+	if pt.Y > y-18 && pt.Y < y+h+18 {
+		left := pt.X - 18 - (area.X + 10)
+		right := area.X + area.Width - 10 - (pt.X + 18)
+		if right >= w || right >= left {
+			w = min(w, right)
+			x = pt.X + 18
+		} else {
+			w = min(w, left)
+			x = pt.X - w - 18
+		}
+	}
+	x = clampInt(x, area.X+10, area.X+area.Width-w-10)
 	return mygo.Rectangle{X: x, Y: y, Width: w, Height: h}
 }
 

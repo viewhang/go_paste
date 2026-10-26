@@ -140,7 +140,7 @@ func (a *App) paste(rec *types.Record, plain bool) {
 	if rec == nil {
 		return
 	}
-	if err := a.writeClipboard(rec, plain || a.settings.PastePlain, "hex"); err != nil {
+	if err := a.writeClipboard(rec, plain || a.settings.PastePlain); err != nil {
 		a.toast(err.Error())
 		return
 	}
@@ -173,7 +173,7 @@ func (a *App) copySelected(plain bool) {
 
 // copy 将记录写入剪贴板并显示操作结果
 func (a *App) copy(rec *types.Record, plain bool) {
-	if err := a.writeClipboard(rec, plain, "hex"); err != nil {
+	if err := a.writeClipboard(rec, plain); err != nil {
 		a.toast(err.Error())
 		return
 	}
