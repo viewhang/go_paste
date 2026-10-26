@@ -63,7 +63,7 @@ func (a *App) headerRow(c *ui.Context, p palette, compact bool) {
 	})
 }
 
-// searchBox 绘制自动聚焦的搜索框并处理搜索、预览、粘贴与长条导航
+// searchBox 绘制自动聚焦的搜索框并处理搜索、删除、预览、粘贴与长条导航
 func (a *App) searchBox(c *ui.Context, p palette, compact bool) {
 	box := ui.Row(c).Gap(6).AlignItems(ui.Center).Radius(8).Padding(0, 8)
 	a.themeSurface(box, p.hover, false)
@@ -86,23 +86,30 @@ func (a *App) searchBox(c *ui.Context, p palette, compact bool) {
 		ui.Icon(c, icoSearch).Size(13, 13).TextColor(p.faint)
 		field := ui.TextInputBase(c, &a.query).Bind(&a.search).Grow(1).AutoFocus()
 		field.Placeholder(locales.SearchClipboard()).Label(locales.SearchClipboard()).FontSize(12.5)
-		if compact {
-			width, height := c.Size()
-			field.OnTextKey(func(k ui.TextKey) bool {
-				if k.Mods != 0 || k.Text() != "" {
-					return false
-				}
-				switch k.Key {
-				case ui.KeyLeft:
-					a.moveSel(-1, width, height)
-				case ui.KeyRight:
-					a.moveSel(1, width, height)
-				default:
-					return false
+		width, height := c.Size()
+		field.OnTextKey(func(k ui.TextKey) bool {
+			if a.recording != "" || a.prompt != nil || k.Text() != "" {
+				return false
+			}
+			if mods, key := a.shortcutKeys("delete"); k.Key == key && k.Mods == mods {
+				if rec := a.selected(); rec != nil {
+					a.later(func() { a.remove(rec) })
 				}
 				return true
-			})
-		}
+			}
+			if !compact || k.Mods != 0 {
+				return false
+			}
+			switch k.Key {
+			case ui.KeyLeft:
+				a.moveSel(-1, width, height)
+			case ui.KeyRight:
+				a.moveSel(1, width, height)
+			default:
+				return false
+			}
+			return true
+		})
 		if field.Changed() {
 			mods, key := a.shortcutKeys("preview")
 			if a.query == " " && mods == 0 && key == ui.KeySpace && c.Modifiers() == 0 {

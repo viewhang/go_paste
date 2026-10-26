@@ -202,6 +202,77 @@ func TestListShortcuts(t *testing.T) {
 	}
 }
 
+// TestDeleteShortcut 验证两种面板的删除快捷键录制、搜索编辑、预览删除与自定义按键
+func TestDeleteShortcut(t *testing.T) {
+	for _, form := range []int{formBar, formPanel} {
+		a := NewApp()
+		a.form, a.settings = form, types.DefaultSettings()
+		a.records = []*types.Record{
+			{ID: "first", Kind: types.KindText, Text: "first record"},
+			{ID: "second", Kind: types.KindText, Text: "needle record"},
+			{ID: "third", Kind: types.KindText, Text: "third record"},
+			{ID: "fourth", Kind: types.KindText, Text: "last record"},
+		}
+		initTestStore(t, a)
+		if mods, key := a.shortcutKeys("delete"); mods != 0 || key != ui.KeyBackspace {
+			t.Fatal("默认删除快捷键应为 Backspace")
+		}
+		recorder := ui.NewTester(func(c *ui.Context) { a.settingsShortcuts(c, pal(c)) }, 560, 700)
+		if err := recorder.Click("删除这条记录快捷键"); err != nil {
+			t.Fatal(err)
+		}
+		recorder.Key(0, ui.KeyBackspace)
+		if a.recording != "" || a.st.Settings().Shortcuts["delete"] != "Backspace" {
+			t.Fatal("Backspace 删除快捷键未录制并保存")
+		}
+		tt := ui.NewTester(a.view, 1180, panelHeight)
+		tt.Key(0, ui.KeyBackspace)
+		if _, ok := a.st.Get("first"); ok || len(a.records) != 3 {
+			t.Fatalf("形态 %d 的空搜索框未删除选中记录", form)
+		}
+		tt.Type("needle")
+		tt.Key(0, ui.KeyBackspace)
+		if a.query != "needl" || len(a.records) != 3 {
+			t.Fatal("搜索框中的 Backspace 应只删除文字")
+		}
+		tt.Key(0, ui.KeyTab)
+		tt.Key(0, ui.KeyBackspace)
+		if _, ok := a.st.Get("second"); ok || len(a.records) != 2 || a.query != "needl" {
+			t.Fatal("离开搜索框后未删除筛选记录或改变了搜索内容")
+		}
+		tt.Key(ui.Cmd, ui.KeyF)
+		tt.Key(ui.Cmd, ui.KeyA)
+		tt.Key(0, ui.KeyBackspace)
+		if a.query != "" || len(a.records) != 2 {
+			t.Fatal("清空搜索文字时不应删除记录")
+		}
+		if err := a.setShortcut("delete", "F8"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		tt.Key(0, ui.KeyBackspace)
+		if len(a.records) != 2 {
+			t.Fatal("自定义删除键后仍响应默认 Backspace")
+		}
+		tt.Key(0, ui.KeyF8)
+		if _, ok := a.st.Get("third"); ok || len(a.records) != 1 {
+			t.Fatal("自定义删除快捷键未生效")
+		}
+		if err := a.setShortcut("delete", "Backspace"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		tt.TypeKey(0, ui.KeySpace, " ")
+		if !a.preview {
+			t.Fatal("未打开记录预览")
+		}
+		tt.Key(0, ui.KeyBackspace)
+		if a.preview || len(a.records) != 0 {
+			t.Fatal("预览中的 Backspace 未删除记录并关闭预览")
+		}
+	}
+}
+
 // TestShortcutReservedKeys 验证文本编辑、快速粘贴与已有操作的按键不被覆盖
 func TestShortcutReservedKeys(t *testing.T) {
 	a := NewApp()
@@ -209,6 +280,7 @@ func TestShortcutReservedKeys(t *testing.T) {
 	for _, choice := range []struct{ id, accel string }{
 		{"toggle", "Shift+P"},
 		{"preview", "P"},
+		{"preview", "Backspace"},
 		{"paste", "CmdOrCtrl+A"},
 		{"preview", "CmdOrCtrl+C"},
 		{"paste", "CmdOrCtrl+V"},

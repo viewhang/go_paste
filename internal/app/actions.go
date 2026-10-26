@@ -15,9 +15,15 @@ import (
 	"gopaste/internal/types"
 )
 
-// keyboard 处理记录导航、列表切换、可见项目快速粘贴与自定义操作快捷键
+// keyboard 处理记录导航、列表切换、删除、快速粘贴与自定义操作快捷键
 func (a *App) keyboard(c *ui.Context) {
 	if a.recording != "" || a.prompt != nil {
+		return
+	}
+	if !a.search.Focused(c) && a.shortcutPressed(c, "delete") && a.once() {
+		if rec := a.selected(); rec != nil {
+			a.remove(rec)
+		}
 		return
 	}
 	if a.preview {
@@ -59,11 +65,6 @@ func (a *App) keyboard(c *ui.Context) {
 	}
 	if a.shortcutPressed(c, "settings") && a.once() {
 		a.openSettings()
-	}
-	if c.Shortcut(0, ui.KeyBackspace) && a.once() && a.query == "" && !a.search.Focused(c) {
-		if rec := a.selected(); rec != nil {
-			a.remove(rec)
-		}
 	}
 	if a.shortcutPressed(c, "copy") && a.once() && !a.search.Focused(c) {
 		a.copySelected(false)

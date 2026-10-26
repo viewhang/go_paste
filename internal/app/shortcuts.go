@@ -24,6 +24,7 @@ var shortcutActions = []struct {
 	{"pastePlain", locales.PastePlain, "Shift+Enter"},
 	{"preview", locales.Preview, "Space"},
 	{"copy", locales.ShortcutCopy, "CmdOrCtrl+C"},
+	{"delete", locales.DeleteRecord, "Backspace"},
 	{"search", locales.ShortcutSearch, "CmdOrCtrl+F"},
 	{"previousList", locales.ShortcutPreviousList, "CmdOrCtrl+["},
 	{"nextList", locales.ShortcutNextList, "CmdOrCtrl+]"},
@@ -88,7 +89,7 @@ func (a *App) setShortcut(id, acc string) error {
 	if id == "toggle" && mods&(ui.Ctrl|ui.Alt|ui.Super) == 0 {
 		return errors.New(locales.ShortcutNeedsModifier())
 	}
-	if mods == 0 && key != ui.KeyEnter && key != ui.KeySpace && !(key >= ui.KeyF1 && key <= ui.KeyF12) {
+	if mods == 0 && key != ui.KeyEnter && key != ui.KeySpace && !(id == "delete" && key == ui.KeyBackspace) && !(key >= ui.KeyF1 && key <= ui.KeyF12) {
 		return errors.New(locales.ShortcutNeedsCombination())
 	}
 	if mods == ui.Cmd && (key == ui.KeyA || key == ui.KeyX || key == ui.KeyV || key == ui.KeyZ || key == ui.KeyC && id != "copy") {
@@ -224,6 +225,7 @@ func accelFrom(mods ui.Modifiers, key, physical ui.Key) (string, bool) {
 	return b.String(), true
 }
 
+// keyNames 保存快捷键录制与解析共用的按键名称
 var keyNames = map[ui.Key]string{
 	ui.KeyA: "A", ui.KeyB: "B", ui.KeyC: "C", ui.KeyD: "D", ui.KeyE: "E",
 	ui.KeyF: "F", ui.KeyG: "G", ui.KeyH: "H", ui.KeyI: "I", ui.KeyJ: "J",
@@ -236,7 +238,7 @@ var keyNames = map[ui.Key]string{
 	ui.KeyF1: "F1", ui.KeyF2: "F2", ui.KeyF3: "F3", ui.KeyF4: "F4",
 	ui.KeyF5: "F5", ui.KeyF6: "F6", ui.KeyF7: "F7", ui.KeyF8: "F8",
 	ui.KeyF9: "F9", ui.KeyF10: "F10", ui.KeyF11: "F11", ui.KeyF12: "F12",
-	ui.KeySpace: "Space", ui.KeyEnter: "Enter", ui.KeyTab: "Tab",
+	ui.KeySpace: "Space", ui.KeyEnter: "Enter", ui.KeyTab: "Tab", ui.KeyBackspace: "Backspace",
 	ui.KeyLeft: "Left", ui.KeyRight: "Right", ui.KeyUp: "Up", ui.KeyDown: "Down",
 	ui.KeyHome: "Home", ui.KeyEnd: "End", ui.KeyPageUp: "PageUp", ui.KeyPageDown: "PageDown",
 	ui.KeyMinus: "-", ui.KeyEqual: "=", ui.KeyComma: ",", ui.KeyPeriod: ".",

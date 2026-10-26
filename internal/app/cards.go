@@ -315,7 +315,7 @@ func (a *App) cardMenu(c *ui.Context, m *ui.Menu, r *types.Record) {
 		}
 	}
 	m.Separator()
-	if m.Item(locales.Delete()).Shortcut(0, ui.KeyBackspace).Chosen() {
+	if m.Item(locales.Delete()).Shortcut(a.shortcutKeys("delete")).Chosen() {
 		a.later(func() { a.remove(r) })
 	}
 }
