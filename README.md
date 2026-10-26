@@ -71,7 +71,7 @@ Hold Command on macOS or Ctrl on Windows to show quick-paste numbers. Check for 
 
 ## Development
 
-Requires Go 1.27.1.
+Requires Go 1.27.3.
 
 ```bash
 CGO_ENABLED=0 go run .
