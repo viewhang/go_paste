@@ -121,6 +121,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: 检出版本历史以生成更新日志
+        uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: 下载三个平台的发布文件
         uses: actions/download-artifact@v8
         with:
@@ -143,5 +150,15 @@ jobs:
           默认快捷键：macOS `Command+Shift+V`，Windows `Ctrl+Shift+V`
 
           macOS 应用使用本地证书签名，未经过 Apple 公证
+
+          If you cannot launch GoPaste on macOS after moving it to `/Applications`, try running the following command in Terminal
+          安装完成后，如果在 macOS 下无法启动 GoPaste，请尝试在终端执行以下命令
+
+          ```bash
+          sudo xattr -d com.apple.quarantine /Applications/GoPaste.app
+          ```
           NOTES
+          previous_tag="$(git tag --merged "$RELEASE_TAG^" --sort=-version:refname --list 'v*' | head -n 1)"
+          printf '\n## 更新日志 / Changelog\n\n' >> "$RUNNER_TEMP/release-notes.md"
+          git log --no-merges --format='- %s (%h)' "${previous_tag:+$previous_tag..}$RELEASE_TAG" >> "$RUNNER_TEMP/release-notes.md"
           gh release create "$RELEASE_TAG" release/* --verify-tag --title "GoPaste $RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
