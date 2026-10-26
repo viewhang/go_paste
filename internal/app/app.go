@@ -15,6 +15,7 @@ import (
 
 	"gopaste/internal/clip"
 	"gopaste/internal/locales"
+	"gopaste/internal/native"
 	"gopaste/internal/store"
 	"gopaste/internal/types"
 )
@@ -186,6 +187,9 @@ func (a *App) ready() {
 	a.setUpTray()
 
 	a.watch = clip.New(st, func(rec *types.Record) {
+		if st.Settings().CopySound {
+			mygo.RunOnMain(native.PlayCopySound)
+		}
 		if rec != nil && rec.Kind == types.KindLink && rec.URL != "" && rec.PreviewState == "" {
 			go a.fetchPreview(rec.ID, rec.URL)
 		}

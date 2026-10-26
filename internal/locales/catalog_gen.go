@@ -473,6 +473,14 @@ func (msgs Messages) PauseRecording() string {
 	return Catalog.Format(msgs.locale, "pauseRecording", nil)
 }
 
+// CopySound 返回应用当前语言的复制提示音设置名称
+func CopySound() string { return In(i18n.Locale()).CopySound() }
+
+// CopySound 返回指定语言的复制提示音设置名称
+func (msgs Messages) CopySound() string {
+	return Catalog.Format(msgs.locale, "copySound", nil)
+}
+
 // Data says "数据"
 // in the language the app shows.
 func Data() string { return In(i18n.Locale()).Data() }

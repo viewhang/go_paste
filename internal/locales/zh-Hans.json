@@ -44,6 +44,7 @@
   "forever": "永久",
   "launchAtLogin": "开机时启动",
   "pauseRecording": "暂停记录",
+  "copySound": "复制时播放提示音",
   "data": "数据",
   "recordLocation": "存储位置",
   "showInFolder": "在文件夹中显示",

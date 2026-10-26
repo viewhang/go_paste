@@ -26,10 +26,14 @@ var (
 	procGetClipboardOwner          = user32.NewProc("GetClipboardOwner")
 	procGetWindowThreadProcessID   = user32.NewProc("GetWindowThreadProcessId")
 	procKeybdEvent                 = user32.NewProc("keybd_event")
+	procMessageBeep                = user32.NewProc("MessageBeep")
 	procOpenProcess                = kernel32.NewProc("OpenProcess")
 	procQueryFullProcessImageNameW = kernel32.NewProc("QueryFullProcessImageNameW")
 	procCloseHandle                = kernel32.NewProc("CloseHandle")
 )
+
+// PlayCopySound 播放 Windows 的系统提示音
+func PlayCopySound() { procMessageBeep.Call(0) }
 
 // ChangeCount returns the clipboard sequence number, which changes every
 // time the clipboard is updated.

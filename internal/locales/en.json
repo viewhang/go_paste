@@ -44,6 +44,7 @@
   "forever": "Forever",
   "launchAtLogin": "Launch at Login",
   "pauseRecording": "Pause Recording",
+  "copySound": "Play Sound on Copy",
   "data": "Data",
   "recordLocation": "Storage Location",
   "showInFolder": "Show in Folder",

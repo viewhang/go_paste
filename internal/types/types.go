@@ -127,6 +127,8 @@ type Settings struct {
 	RetentionDays   int  `json:"retentionDays"`
 	LaunchAtLogin   bool `json:"launchAtLogin"`
 	Paused          bool `json:"paused"`
+	// CopySound 控制成功记录复制内容后是否播放系统提示音
+	CopySound bool `json:"copySound"`
 	// ExcludedApps 保存用户可增删的默认及自定义排除应用
 	ExcludedApps []ExcludedApp `json:"excludedApps"`
 	// ExcludedAppsInitialized 标记默认列表已初始化以保留用户的移除结果
@@ -192,6 +194,7 @@ const DefaultHotkey = "CmdOrCtrl+Shift+V"
 func DefaultSettings() Settings {
 	return Settings{
 		Hotkey:                  DefaultHotkey,
+		CopySound:               true,
 		LinkPreview:             true,
 		MaxRecords:              600,
 		HistoryLimitMiB:         256,

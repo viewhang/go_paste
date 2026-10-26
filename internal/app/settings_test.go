@@ -12,6 +12,47 @@ import (
 	"gopaste/internal/store"
 )
 
+// TestCopySoundSetting 验证复制提示音默认开启、中英文开关即时保存及重启后保留关闭状态
+func TestCopySoundSetting(t *testing.T) {
+	for _, tag := range []string{"zh-Hans", "en"} {
+		t.Run(tag, func(t *testing.T) {
+			t.Setenv("MYGO_LOCALE", tag)
+			st, err := store.Open(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { st.Close() })
+			a := NewApp()
+			a.st, a.settings = st, st.Settings()
+			if !a.settings.CopySound {
+				t.Fatal("复制提示音应默认开启")
+			}
+			tt := ui.NewTester(func(c *ui.Context) { a.settingsHistory(c, pal(c)) }, 560, 450)
+			tt.SetLocale(tag)
+			sound, ok := tt.Find(locales.In(tag).CopySound())
+			if !ok {
+				t.Fatal("未显示当前语言的复制提示音开关")
+			}
+			tt.ClickAt(520, sound.Y+sound.H/2)
+			if a.settings.CopySound || st.Settings().CopySound {
+				t.Fatal("关闭复制提示音未即时保存")
+			}
+			reopened, err := store.Open(st.Dir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { reopened.Close() })
+			if reopened.Settings().CopySound {
+				t.Fatal("重新读取设置后复制提示音被开启")
+			}
+			tt.ClickAt(520, sound.Y+sound.H/2)
+			if !a.settings.CopySound || !st.Settings().CopySound {
+				t.Fatal("复制提示音无法重新开启")
+			}
+		})
+	}
+}
+
 // TestSettingsNavigation 验证中英文设置分类、快捷键录制生命周期与设置即时保存
 func TestSettingsNavigation(t *testing.T) {
 	for _, tag := range []string{"zh-Hans", "en"} {

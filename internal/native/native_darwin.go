@@ -162,6 +162,17 @@ func nsString(s string) objc.ID {
 	return str
 }
 
+// PlayCopySound 播放 macOS 的 Jump 复制提示音
+func PlayCopySound() {
+	withPool(func() {
+		name := nsString("Frog")
+		defer send(name, "release")
+		sound := send(class("NSSound"), "soundNamed:", uintptr(name))
+		send(sound, "stop")
+		send(sound, "play")
+	})
+}
+
 // ChangeCount returns the pasteboard's change counter, which increases
 // every time its contents are replaced.
 func ChangeCount() int64 {

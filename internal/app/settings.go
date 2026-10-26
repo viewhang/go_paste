@@ -178,7 +178,7 @@ func (a *App) settingsPaste(c *ui.Context, p palette) {
 	})
 }
 
-// settingsHistory 显示历史条数、容量、保留时间与启动记录设置
+// settingsHistory 显示历史限制、启动、复制提示音与暂停记录设置
 func (a *App) settingsHistory(c *ui.Context, p palette) {
 	ui.Column(c).Gap(8).Children(func() {
 		sectionTitle(c, p, locales.HistoryStartup())
@@ -229,6 +229,14 @@ func (a *App) settingsHistory(c *ui.Context, p palette) {
 			})
 			if login != a.settings.LaunchAtLogin {
 				a.setSetting(func(s *types.Settings) { s.LaunchAtLogin = login })
+			}
+			ui.Divider(c)
+			sound := a.settings.CopySound
+			settingRow(c, p, locales.CopySound(), "", func() {
+				ui.Switch(c, &sound).Label(locales.CopySound())
+			})
+			if sound != a.settings.CopySound {
+				a.setSetting(func(s *types.Settings) { s.CopySound = sound })
 			}
 			ui.Divider(c)
 			paused := a.settings.Paused

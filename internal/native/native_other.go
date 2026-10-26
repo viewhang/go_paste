@@ -4,6 +4,9 @@ package native
 
 import "errors"
 
+// PlayCopySound 当前平台不播放复制提示音
+func PlayCopySound() {}
+
 // ChangeCount is not implemented on this platform.
 func ChangeCount() int64 { return 0 }
 
