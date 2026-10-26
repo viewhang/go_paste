@@ -205,18 +205,12 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 	}
 }
 
-// previewFoot 显示预览记录的粘贴、复制与删除入口
+// previewFoot 显示预览记录的粘贴与删除入口
 func (a *App) previewFoot(c *ui.Context, p palette, r *types.Record) {
 	ui.Row(c).Padding(8, 12).Gap(7).AlignItems(ui.Center).BorderWidth(1, 0, 0, 0).
 		BorderColor(p.hair).Children(func() {
 		if ui.PrimaryButton(c, locales.Paste()).Clicked() {
 			a.later(func() { a.paste(r, false) })
-		}
-		if ui.Button(c, locales.PlainText()).Clicked() {
-			a.later(func() { a.paste(r, true) })
-		}
-		if ui.Button(c, locales.Copy()).Clicked() {
-			a.later(func() { a.copy(r, false) })
 		}
 		ui.Spacer(c)
 		del := ui.Button(c, "")
