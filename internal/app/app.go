@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
@@ -110,6 +111,12 @@ type App struct {
 	recording      string
 	shortcutError  string
 	updatesEnabled bool
+	// updateTransport 将更新请求路由到当前镜像
+	updateTransport *updateMirrorTransport
+	// updateMirrorInput 保存镜像地址输入框中尚未应用的内容
+	updateMirrorInput string
+	// updateMirrorError 显示镜像地址的校验错误
+	updateMirrorError string
 	// settingsPage 保存设置窗口当前选中的分类
 	settingsPage string
 	// installedApps 缓存设置窗口打开时的本机应用列表
@@ -124,9 +131,10 @@ type App struct {
 // NewApp 创建应用状态并限制链接预览的并发任务数
 func NewApp() *App {
 	return &App{
-		imageScale:   1,
-		previewSlots: make(chan struct{}, 2),
-		settingsPage: "general",
+		imageScale:      1,
+		previewSlots:    make(chan struct{}, 2),
+		settingsPage:    "general",
+		updateTransport: &updateMirrorTransport{base: http.DefaultTransport},
 	}
 }
 
@@ -149,6 +157,8 @@ func (a *App) ready() {
 	}
 	a.st = st
 	a.reload()
+	prefix := a.settings.UpdateMirror
+	a.updateTransport.prefix.Store(&prefix)
 	if a.settings.Form == formPanel {
 		a.form = formPanel
 	}
@@ -639,6 +649,7 @@ func (a *App) once() bool {
 // openSettings 显示设置窗口并在关闭后结束快捷键录制
 func (a *App) openSettings() {
 	if a.setWin == nil {
+		a.updateMirrorInput, a.updateMirrorError = a.settings.UpdateMirror, ""
 		a.setWin = mygo.NewWindow(mygo.WindowOptions{
 			Title:           locales.SettingsTitle(),
 			Width:           780,

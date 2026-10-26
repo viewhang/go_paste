@@ -1221,6 +1221,38 @@ func (msgs Messages) AutoInstallUpdates() string {
 	return Catalog.Format(msgs.locale, "autoInstallUpdates", nil)
 }
 
+// UpdateMirror 返回应用当前语言的更新镜像设置名称
+func UpdateMirror() string { return In(i18n.Locale()).UpdateMirror() }
+
+// UpdateMirror 返回指定语言的更新镜像设置名称
+func (msgs Messages) UpdateMirror() string {
+	return Catalog.Format(msgs.locale, "updateMirror", nil)
+}
+
+// UpdateMirrorAddress 返回应用当前语言的镜像地址输入框名称
+func UpdateMirrorAddress() string { return In(i18n.Locale()).UpdateMirrorAddress() }
+
+// UpdateMirrorAddress 返回指定语言的镜像地址输入框名称
+func (msgs Messages) UpdateMirrorAddress() string {
+	return Catalog.Format(msgs.locale, "updateMirrorAddress", nil)
+}
+
+// UpdateMirrorHint 返回应用当前语言的更新镜像说明
+func UpdateMirrorHint() string { return In(i18n.Locale()).UpdateMirrorHint() }
+
+// UpdateMirrorHint 返回指定语言的更新镜像说明
+func (msgs Messages) UpdateMirrorHint() string {
+	return Catalog.Format(msgs.locale, "updateMirrorHint", nil)
+}
+
+// InvalidUpdateMirror 返回应用当前语言的镜像地址校验提示
+func InvalidUpdateMirror() string { return In(i18n.Locale()).InvalidUpdateMirror() }
+
+// InvalidUpdateMirror 返回指定语言的镜像地址校验提示
+func (msgs Messages) InvalidUpdateMirror() string {
+	return Catalog.Format(msgs.locale, "invalidUpdateMirror", nil)
+}
+
 // OpenSettings says "打开设置"
 // in the language the app shows.
 func OpenSettings() string { return In(i18n.Locale()).OpenSettings() }

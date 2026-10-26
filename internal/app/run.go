@@ -6,6 +6,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
+	"net/http"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/updater"
@@ -28,6 +29,8 @@ func Run() {
 	if !mygo.App.RequestSingleInstanceLock() {
 		return
 	}
+	http.DefaultClient.Transport = a.updateTransport
+	mygo.App.WhenReady(a.ready)
 	mygo.Use(updatenative.New(updater.Options{
 		Icon: assets.AppIcon,
 		Strings: map[string]updater.Strings{
@@ -49,7 +52,6 @@ func Run() {
 	})
 	mygo.App.OnSecondInstance(func([]string, string) { a.show() })
 	mygo.App.OnWillQuit(func(*mygo.QuitEvent) { a.shutdown() })
-	mygo.App.WhenReady(a.ready)
 
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)

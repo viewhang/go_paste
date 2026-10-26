@@ -129,6 +129,8 @@ type Settings struct {
 	Paused          bool `json:"paused"`
 	// CopySound 控制成功记录复制内容后是否播放系统提示音
 	CopySound bool `json:"copySound"`
+	// UpdateMirror 保存更新检查与下载使用的 GitHub 镜像前缀，留空时直连
+	UpdateMirror string `json:"updateMirror,omitempty"`
 	// ExcludedApps 保存用户可增删的默认及自定义排除应用
 	ExcludedApps []ExcludedApp `json:"excludedApps"`
 	// ExcludedAppsInitialized 标记默认列表已初始化以保留用户的移除结果
