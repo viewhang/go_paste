@@ -27,6 +27,18 @@ func (a *App) currentTab() types.Tab {
 	return tabs[0]
 }
 
+// moveTab 切换相邻列表并重置记录选择与滚动位置，到达首尾时停止
+func (a *App) moveTab(delta int) {
+	tab := clampInt(a.tab+delta, 0, len(a.settings.CustomTabs))
+	if tab == a.tab {
+		return
+	}
+	a.tab, a.sel = tab, 0
+	a.vis = a.filtered()
+	a.list.ScrollIntoView(0)
+	a.strip.X = 0
+}
+
 // ruleExtensions 解析由逗号或空白分隔的文件扩展名
 func ruleExtensions(value string) []string {
 	var extensions []string

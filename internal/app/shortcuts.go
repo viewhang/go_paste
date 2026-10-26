@@ -25,6 +25,8 @@ var shortcutActions = []struct {
 	{"preview", locales.Preview, "Space"},
 	{"copy", locales.ShortcutCopy, "CmdOrCtrl+C"},
 	{"search", locales.ShortcutSearch, "CmdOrCtrl+F"},
+	{"previousList", locales.ShortcutPreviousList, "CmdOrCtrl+["},
+	{"nextList", locales.ShortcutNextList, "CmdOrCtrl+]"},
 	{"settings", locales.OpenSettings, "CmdOrCtrl+,"},
 }
 

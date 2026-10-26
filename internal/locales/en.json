@@ -122,6 +122,8 @@
   "shortcutToggle": "Show Panel",
   "shortcutCopy": "Copy Selected Record",
   "shortcutSearch": "Focus Search",
+  "shortcutPreviousList": "Previous List",
+  "shortcutNextList": "Next List",
   "shortcutNeedsModifier": "The global shortcut must include Command, Ctrl or Alt",
   "shortcutNeedsCombination": "Use a key combination to keep typing and arrow keys available",
   "shortcutTextEditing": "This shortcut is used for editing text in the search field",

@@ -132,7 +132,77 @@ func TestSpacePreviewFromSearch(t *testing.T) {
 	}
 }
 
-// TestShortcutReservedKeys 验证文本编辑、快速粘贴与全局呼出的按键不被覆盖
+// TestListShortcuts 验证两种面板切换列表、首尾停止、保留搜索及自定义按键
+func TestListShortcuts(t *testing.T) {
+	for _, form := range []int{formBar, formPanel} {
+		a := NewApp()
+		a.form, a.settings = form, types.DefaultSettings()
+		a.settings.CustomTabs = []types.Tab{
+			{ID: "work", Name: "工作"},
+			{ID: "smart", Name: "智能", Smart: true, Rules: []types.ListRule{{Field: types.RuleKind, Value: "text"}}},
+		}
+		a.records = []*types.Record{
+			{ID: "one", Kind: types.KindText, Text: "needle 1", ListID: "work"},
+			{ID: "two", Kind: types.KindText, Text: "needle 2", ListID: "work"},
+			{ID: "three", Kind: types.KindText, Text: "needle 3"},
+		}
+		initTestStore(t, a)
+		for id, key := range map[string]ui.Key{"previousList": ui.KeyBracketLeft, "nextList": ui.KeyBracketRight} {
+			if mods, got := a.shortcutKeys(id); mods != ui.Cmd || got != key {
+				t.Fatalf("%s 默认快捷键不正确：%v %v", id, mods, got)
+			}
+		}
+		tt := ui.NewTester(a.view, 1180, panelHeight)
+		tt.Type("needle")
+		for _, step := range []struct {
+			key ui.Key
+			tab int
+		}{
+			{ui.KeyBracketLeft, 0}, {ui.KeyBracketRight, 1}, {ui.KeyBracketRight, 2},
+			{ui.KeyBracketRight, 2}, {ui.KeyBracketLeft, 1}, {ui.KeyBracketLeft, 0},
+		} {
+			a.sel = 1
+			previous := a.tab
+			tt.Key(ui.Cmd, step.key)
+			if a.tab != step.tab || a.query != "needle" || previous != a.tab && a.sel != 0 {
+				t.Fatalf("形态 %d 切换列表失败：列表 %d，搜索 %q，选择 %d", form, a.tab, a.query, a.sel)
+			}
+			want := 3
+			if a.tab == 1 {
+				want = 2
+			}
+			if len(a.vis) != want || !tt.Focused("搜索记录") {
+				t.Fatal("切换列表未更新筛选或丢失搜索焦点")
+			}
+		}
+		if err := a.setShortcut("nextList", "CmdOrCtrl+Shift+N"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Key(ui.Cmd, ui.KeyBracketRight)
+		if a.tab != 0 {
+			t.Fatal("自定义后仍响应默认切换键")
+		}
+		tt.Key(ui.Cmd|ui.Shift, ui.KeyN)
+		if a.tab != 1 {
+			t.Fatal("自定义列表切换键未生效")
+		}
+		a.setSetting(func(s *types.Settings) { s.CustomTabs = nil })
+		a.tab = 0
+		tt.Frame()
+		for _, key := range []ui.Key{ui.KeyBracketLeft, ui.KeyN} {
+			mods := ui.Cmd
+			if key == ui.KeyN {
+				mods |= ui.Shift
+			}
+			tt.Key(mods, key)
+			if a.tab != 0 {
+				t.Fatal("只有全部列表时切换到了无效列表")
+			}
+		}
+	}
+}
+
+// TestShortcutReservedKeys 验证文本编辑、快速粘贴与已有操作的按键不被覆盖
 func TestShortcutReservedKeys(t *testing.T) {
 	a := NewApp()
 	a.settings = types.DefaultSettings()
@@ -144,6 +214,8 @@ func TestShortcutReservedKeys(t *testing.T) {
 		{"paste", "CmdOrCtrl+V"},
 		{"paste", "CmdOrCtrl+1"},
 		{"preview", "CmdOrCtrl+0"},
+		{"preview", "CmdOrCtrl+["},
+		{"preview", "CmdOrCtrl+]"},
 	} {
 		if err := a.setShortcut(choice.id, choice.accel); err == nil {
 			t.Errorf("不应允许 %s 使用 %s", choice.id, choice.accel)

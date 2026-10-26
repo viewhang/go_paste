@@ -74,6 +74,9 @@ func TestLocalizedEditorAndShortcuts(t *testing.T) {
 		if _, ok := shortcuts.Find(messages.ShortcutLabel(messages.Preview())); !ok {
 			t.Fatalf("快捷键标题未切换为 %s", tag)
 		}
+		if !shortcuts.HasText(messages.ShortcutPreviousList()) || !shortcuts.HasText(messages.ShortcutNextList()) {
+			t.Fatalf("列表切换快捷键标题未切换为 %s", tag)
+		}
 	}
 }
 

@@ -58,6 +58,8 @@ On macOS, automatic paste requires permission in **System Settings → Privacy &
 | --- | --- |
 | `⌘⇧V` / `Ctrl+Shift+V` | Show or hide the panel |
 | `↑` `↓` | Select a record; use `←` `→` in the bottom bar |
+| `⌘[` / `Ctrl+[` | Previous list |
+| `⌘]` / `Ctrl+]` | Next list |
 | `Enter` / `Shift+Enter` | Paste / paste as plain text |
 | `⌘1–0` / `Ctrl+1–0` | Paste a visible item, up to ten items |
 | `Space` | Preview |

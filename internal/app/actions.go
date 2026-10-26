@@ -15,7 +15,7 @@ import (
 	"gopaste/internal/types"
 )
 
-// keyboard 处理方向键导航、可见项目快速粘贴与自定义操作快捷键
+// keyboard 处理记录导航、列表切换、可见项目快速粘贴与自定义操作快捷键
 func (a *App) keyboard(c *ui.Context) {
 	if a.recording != "" || a.prompt != nil {
 		return
@@ -36,6 +36,12 @@ func (a *App) keyboard(c *ui.Context) {
 	}
 	if c.Shortcut(0, ui.KeyEscape) && a.once() {
 		a.escape()
+	}
+	if a.shortcutPressed(c, "previousList") && a.once() {
+		a.moveTab(-1)
+	}
+	if a.shortcutPressed(c, "nextList") && a.once() {
+		a.moveTab(1)
 	}
 	previous, next := ui.KeyUp, ui.KeyDown
 	if a.form == formBar {

@@ -1253,6 +1253,22 @@ func (msgs Messages) ShortcutSearch() string {
 	return Catalog.Format(msgs.locale, "shortcutSearch", nil)
 }
 
+// ShortcutPreviousList 返回应用当前语言的上一个列表操作名称
+func ShortcutPreviousList() string { return In(i18n.Locale()).ShortcutPreviousList() }
+
+// ShortcutPreviousList 返回指定语言的上一个列表操作名称
+func (msgs Messages) ShortcutPreviousList() string {
+	return Catalog.Format(msgs.locale, "shortcutPreviousList", nil)
+}
+
+// ShortcutNextList 返回应用当前语言的下一个列表操作名称
+func ShortcutNextList() string { return In(i18n.Locale()).ShortcutNextList() }
+
+// ShortcutNextList 返回指定语言的下一个列表操作名称
+func (msgs Messages) ShortcutNextList() string {
+	return Catalog.Format(msgs.locale, "shortcutNextList", nil)
+}
+
 // ShortcutNeedsModifier says "呼出快捷键需要包含 ⌘、Ctrl 或 Alt"
 // in the language the app shows.
 func ShortcutNeedsModifier() string { return In(i18n.Locale()).ShortcutNeedsModifier() }

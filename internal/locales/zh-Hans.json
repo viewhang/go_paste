@@ -122,6 +122,8 @@
   "shortcutToggle": "呼出面板",
   "shortcutCopy": "复制选中记录",
   "shortcutSearch": "聚焦搜索",
+  "shortcutPreviousList": "上一个列表",
+  "shortcutNextList": "下一个列表",
   "shortcutNeedsModifier": "呼出快捷键需要包含 ⌘、Ctrl 或 Alt",
   "shortcutNeedsCombination": "请使用组合键，保留直接输入搜索与方向键导航",
   "shortcutTextEditing": "该按键用于搜索框的文本编辑",
