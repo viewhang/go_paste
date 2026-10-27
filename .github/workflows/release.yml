@@ -110,7 +110,7 @@ jobs:
             build/${{ matrix.platform }}-${{ matrix.arch }}/*.tar.gz
             build/${{ matrix.platform }}-${{ matrix.arch }}/*.delta
             build/${{ matrix.platform }}-${{ matrix.arch }}/update-*.json
-            build/${{ matrix.platform }}-${{ matrix.arch }}/* Setup *.exe
+            build/${{ matrix.platform }}-${{ matrix.arch }}/*-setup-*.exe
           if-no-files-found: error
           compression-level: 0
 
@@ -144,7 +144,7 @@ jobs:
           支持 macOS Apple Silicon、macOS Intel 和 Windows x64
 
           - macOS：下载对应架构的 `.tar.gz`，解压后将 `GoPaste.app` 放入应用程序目录，自动粘贴需要辅助功能权限
-          - Windows：下载并运行 `GoPaste Setup` 安装包
+          - Windows：下载并运行 `gopaste-setup-<版本>-amd64.exe` 安装包
           - `update-*.json` 和 Windows `.tar.gz` 归档用于自动更新
 
           默认快捷键：macOS `Command+Shift+V`，Windows `Ctrl+Shift+V`

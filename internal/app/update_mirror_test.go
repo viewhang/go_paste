@@ -46,7 +46,7 @@ func TestNormalizeUpdateMirror(t *testing.T) {
 // TestUpdateMirrorRequests 验证清单、完整包和增量包通过镜像下载且相对重定向与请求头保持有效
 func TestUpdateMirrorRequests(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.Header.Get("User-Agent") != "MyGo/test GoPaste/test" || req.Header.Get("Range") != "bytes=0-1023" {
+		if req.Header.Get("User-Agent") != "mygo-updater" || req.Header.Get("Range") != "bytes=0-1023" {
 			t.Error("镜像请求丢失了更新请求头")
 		}
 		switch strings.TrimPrefix(req.URL.Path, "/proxy") {
@@ -79,7 +79,7 @@ func TestUpdateMirrorRequests(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		req.Header.Set("User-Agent", "MyGo/test GoPaste/test")
+		req.Header.Set("User-Agent", "mygo-updater")
 		req.Header.Set("Range", "bytes=0-1023")
 		resp, err := client.Do(req)
 		if err != nil {
@@ -103,9 +103,9 @@ func TestUpdateMirrorRequests(t *testing.T) {
 func TestUpdateMirrorScope(t *testing.T) {
 	for _, tc := range []struct{ address, agent, prefix string }{
 		{"https://github.com/viewhang/go_paste/releases/latest/download/update.json", "GoPaste/0.1", "https://mirror.example"},
-		{"https://github.com/other/repo/releases/latest/download/update.json", "MyGo/test", "https://mirror.example"},
-		{"https://example.com/file", "MyGo/test", "https://mirror.example"},
-		{"https://github.com/viewhang/go_paste/releases/latest/download/update.json", "MyGo/test", ""},
+		{"https://github.com/other/repo/releases/latest/download/update.json", "mygo-updater", "https://mirror.example"},
+		{"https://example.com/file", "mygo-updater", "https://mirror.example"},
+		{"https://github.com/viewhang/go_paste/releases/latest/download/update.json", "mygo-updater", ""},
 	} {
 		transport := &updateMirrorTransport{base: mirrorRoundTripper(func(req *http.Request) (*http.Response, error) {
 			if req.URL.String() != tc.address {
@@ -132,7 +132,7 @@ func TestUpdateMirrorScope(t *testing.T) {
 	prefix := "https://mirror.example"
 	transport.prefix.Store(&prefix)
 	req, _ := http.NewRequest(http.MethodGet, "https://github.com/viewhang/go_paste/releases/latest/download/update.json", nil)
-	req.Header.Set("User-Agent", "MyGo/test")
+	req.Header.Set("User-Agent", "mygo-updater")
 	if _, err := transport.RoundTrip(req); err != want || calls != 1 {
 		t.Fatalf("镜像错误未直接返回：请求 %d 次，错误 %v", calls, err)
 	}

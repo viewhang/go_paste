@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestUpdateFlags 验证两种 macOS 架构分别嵌入对应更新源与公钥
@@ -46,7 +47,7 @@ func TestUpdateFlags(t *testing.T) {
 	}
 }
 
-// TestSignedUpdate 验证归档权限、签名校验与 MyGo 真实检查及安装
+// TestSignedUpdate 验证归档权限、签名校验与 MyGo 真实检查及退出后的安装
 func TestSignedUpdate(t *testing.T) {
 	public, private, err := ed25519.GenerateKey(nil)
 	if err != nil {
@@ -165,8 +166,15 @@ func main() {
 		if output, err := exec.Command(old).CombinedOutput(); err != nil {
 			t.Fatalf("MyGo 更新器未接受发布包：%v\n%s", err, output)
 		}
-		if installed, err := os.ReadFile(old); err != nil || string(installed) != "test app" {
-			t.Fatal("MyGo 更新器未替换隔离应用")
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			if installed, err := os.ReadFile(old); err == nil && string(installed) == "test app" {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatal("MyGo 更新器未在退出后替换隔离应用")
+			}
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 	c.Updates.PublicKey = base64.StdEncoding.EncodeToString(make([]byte, ed25519.PublicKeySize))

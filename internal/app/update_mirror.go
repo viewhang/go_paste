@@ -23,7 +23,7 @@ func (t *updateMirrorTransport) RoundTrip(req *http.Request) (*http.Response, er
 	if prefix == nil || *prefix == "" || req.Method != http.MethodGet ||
 		req.URL.Scheme != "https" || req.URL.Host != "github.com" ||
 		!strings.HasPrefix(req.URL.Path, "/viewhang/go_paste/releases/") ||
-		!strings.HasPrefix(req.Header.Get("User-Agent"), "MyGo/") {
+		req.Header.Get("User-Agent") != "mygo-updater" {
 		return t.base.RoundTrip(req)
 	}
 	target, err := url.Parse(*prefix + "/" + req.URL.String())
