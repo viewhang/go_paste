@@ -216,9 +216,10 @@ func (a *App) addTabButton(c *ui.Context, p palette) {
 	})
 }
 
-// listPane 虚拟化显示记录并为悬浮玻璃控制区预留内容与滚动条空间
+// listPane 保持滚动偏移展示虚拟记录列表并为悬浮玻璃控制区预留空间
 func (a *App) listPane(c *ui.Context, p palette) {
 	n := len(a.vis)
+	a.list.KeepOffset = true
 	a.list.Key = func(i int) any { return a.vis[i].ID }
 	a.list.Label = func(i int) string { return recordTitle(a.recordAt(i)) }
 	list := ui.List(c, &a.list, n, func(i int) {

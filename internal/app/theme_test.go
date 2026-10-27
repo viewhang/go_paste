@@ -151,6 +151,49 @@ func TestGlassFloatingHeader(t *testing.T) {
 	}
 }
 
+// TestNewRecordScrollPosition 验证新增记录在列表顶部完整显示并保留用户主动滚动的偏移
+func TestNewRecordScrollPosition(t *testing.T) {
+	for _, theme := range []int{themeClassic, themeGlass} {
+		for _, scroll := range []float32{0, 120} {
+			t.Run(fmt.Sprintf("theme-%d-scroll-%.0f", theme, scroll), func(t *testing.T) {
+				a := NewApp()
+				a.form, a.settings = formPanel, types.DefaultSettings()
+				a.settings.Theme = theme
+				for i := range 30 {
+					a.records = append(a.records, &types.Record{ID: fmt.Sprint(i), Kind: types.KindText, Text: fmt.Sprintf("记录 %02d", i)})
+				}
+				initTestStore(t, a)
+				tt := ui.NewTester(a.view, panelWidth, panelHeight)
+				tt.Frame()
+				first, ok := tt.Find("记录 00")
+				if !ok {
+					t.Fatal("初始记录未显示")
+				}
+				if scroll > 0 {
+					tt.Scroll(panelWidth-3, 200, 0, scroll)
+					if a.listScroll.Y <= 0 {
+						t.Fatal("列表未滚动")
+					}
+				}
+				offset := a.listScroll.Y
+				if _, _, err := a.st.Capture(&types.Record{ID: "latest", Kind: types.KindText, Text: "最新记录"}, nil, nil); err != nil {
+					t.Fatal(err)
+				}
+				a.reload()
+				tt.Frame()
+				if a.listScroll.Y != offset {
+					t.Fatalf("新增记录改变了滚动偏移：%v → %v", offset, a.listScroll.Y)
+				}
+				if scroll == 0 {
+					if latest, ok := tt.Find("最新记录"); !ok || latest.Y != first.Y {
+						t.Fatalf("最新记录被顶部控制区遮挡：%+v，原位置 %+v", latest, first)
+					}
+				}
+			})
+		}
+	}
+}
+
 // TestGlassSettingsHeader 验证设置标题栏与菜单固定、窗口按钮避让及主题切换
 func TestGlassSettingsHeader(t *testing.T) {
 	for _, dark := range []bool{false, true} {
