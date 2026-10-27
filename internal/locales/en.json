@@ -100,6 +100,7 @@
   "exported": "Exported",
   "imageFileMissing": "The image file is missing",
   "originalFileMissing": "The original file no longer exists",
+  "fileAccessFailed": "Cannot read the original file. Allow GoPaste to access its folder in System Settings",
   "noPasteContent": "This record has no content to paste",
   "imageMissing": "Image Missing",
   "fileMoved": "Moved",

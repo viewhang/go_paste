@@ -100,6 +100,7 @@
   "exported": "已导出",
   "imageFileMissing": "图片文件已丢失",
   "originalFileMissing": "原文件已不存在",
+  "fileAccessFailed": "无法读取原文件，请在系统设置中允许 GoPaste 访问文件所在文件夹",
   "noPasteContent": "这条记录没有可粘贴的内容",
   "imageMissing": "图片已丢失",
   "fileMoved": "已移动",

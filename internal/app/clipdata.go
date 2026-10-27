@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
@@ -30,7 +31,7 @@ func (a *App) writeClipboard(rec *types.Record, plain bool) error {
 	return clip.Write(data)
 }
 
-// clipboardData 保留记录原文与格式，仅在指定纯文本时移除 HTML
+// clipboardData 保留记录原文与格式，写入文件前检查读取权限，仅在指定纯文本时移除 HTML
 func (a *App) clipboardData(rec *types.Record, plain bool) (transfer.Data, error) {
 	rec = a.fullRecord(rec)
 	if rec == nil {
@@ -58,9 +59,15 @@ func (a *App) clipboardData(rec *types.Record, plain bool) (transfer.Data, error
 	case types.KindFile:
 		var paths []string
 		for _, f := range rec.Files {
-			if _, err := os.Stat(f.Path); err == nil {
-				paths = append(paths, f.Path)
+			file, err := os.OpenFile(f.Path, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
 			}
+			if err != nil {
+				return transfer.Data{}, fmt.Errorf("%s: %w", locales.FileAccessFailed(), err)
+			}
+			file.Close()
+			paths = append(paths, f.Path)
 		}
 		if len(paths) == 0 {
 			return transfer.Data{}, errors.New(locales.OriginalFileMissing())

@@ -1031,6 +1031,14 @@ func (msgs Messages) OriginalFileMissing() string {
 	return Catalog.Format(msgs.locale, "originalFileMissing", nil)
 }
 
+// FileAccessFailed 返回应用当前语言的文件读取权限提示
+func FileAccessFailed() string { return In(i18n.Locale()).FileAccessFailed() }
+
+// FileAccessFailed 返回指定语言的文件读取权限提示
+func (msgs Messages) FileAccessFailed() string {
+	return Catalog.Format(msgs.locale, "fileAccessFailed", nil)
+}
+
 // NoPasteContent says "这条记录没有可粘贴的内容"
 // in the language the app shows.
 func NoPasteContent() string { return In(i18n.Locale()).NoPasteContent() }

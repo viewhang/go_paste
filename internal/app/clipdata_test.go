@@ -1,6 +1,10 @@
 package app
 
 import (
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"slices"
 	"testing"
 
@@ -8,6 +12,38 @@ import (
 
 	"gopaste/internal/types"
 )
+
+// TestClipboardFileAccess 验证文件写入前检查读取权限并保留已有文件与目录的传输
+func TestClipboardFileAccess(t *testing.T) {
+	a := NewApp()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "附件.txt")
+	if err := os.WriteFile(path, []byte("附件内容"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	rec := &types.Record{Kind: types.KindFile, Files: []types.FileRef{{Path: path}, {Path: dir}, {Path: filepath.Join(dir, "missing.txt")}}}
+	data, err := a.clipboardData(rec, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if paths, err := data.Files(); err != nil || !slices.Equal(paths, []string{path, dir}) {
+		t.Fatalf("可访问文件与目录传输失败：%v，%v", paths, err)
+	}
+	if err := os.Chmod(path, 0000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(path, 0600) })
+	file, err := os.Open(path)
+	if file != nil {
+		file.Close()
+	}
+	if !errors.Is(err, fs.ErrPermission) {
+		t.Skip("当前平台未应用文件读取权限限制")
+	}
+	if data, err := a.clipboardData(rec, false); !errors.Is(err, fs.ErrPermission) || len(data.Items()) != 0 {
+		t.Fatalf("无权读取原文件时仍提供了文件引用：%v", err)
+	}
+}
 
 // TestClipboardTextFormats 验证文本、链接与颜色的复制和拖出保留原文且仅纯文本粘贴移除格式
 func TestClipboardTextFormats(t *testing.T) {
