@@ -34,12 +34,13 @@ func (a *App) promptOverlay(c *ui.Context, p palette) {
 			card := ui.Column(c).Key(ps).Width(min(420, w-24)).MaxHeight(h-16).Padding(16).Gap(11).Radius(12).
 				Background(p.surface).Border(1, p.border)
 			card.Shadow(0, 12, 34, 0, p.shadow)
+			a.themeSurface(card, p.surface, false)
 			card.Children(func() {
 				ui.Text(c, ps.title()).FontSize(13).Bold().TextColor(p.text)
 				ui.Scroll(c).Shrink(1).MaxHeight(h - 126).Children(func() {
 					ui.Column(c).Gap(8).Children(func() {
 						ui.Text(c, ps.label()).FontSize(11).TextColor(p.muted)
-						field := ui.TextInput(c, &ps.value).Label(locales.InputLabel(ps.label())).AutoFocus()
+						field := a.themeTextInput(c, &ps.value).Label(locales.InputLabel(ps.label())).AutoFocus()
 						if field.Submitted() {
 							a.acceptPrompt()
 						}
@@ -52,10 +53,10 @@ func (a *App) promptOverlay(c *ui.Context, p palette) {
 					ui.Text(c, ps.err).FontSize(11).TextColor(p.accent)
 				}
 				ui.Row(c).Gap(7).Justify(ui.End).Children(func() {
-					if ui.Button(c, locales.Cancel()).Clicked() {
+					if a.themeButton(c, locales.Cancel()).Clicked() {
 						a.prompt = nil
 					}
-					if ui.PrimaryButton(c, ps.okText()).Clicked() {
+					if a.themePrimaryButton(c, ps.okText()).Clicked() {
 						a.acceptPrompt()
 					}
 				})

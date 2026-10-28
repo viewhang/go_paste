@@ -1,6 +1,8 @@
 package app
 
 import (
+	"time"
+
 	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/ui"
 )
@@ -12,22 +14,36 @@ const (
 	themeGlass
 )
 
-// glassHeaderHeight 保留玻璃主题搜索栏与列表标签的初始展示高度
-const glassHeaderHeight = 90
+// glassHeaderHeight 设置玻璃主题整块顶栏的高度
+const glassHeaderHeight = 102
+
+// glassPanelRowHeight 设置玻璃主题记录行的高度
+const glassPanelRowHeight = 64
+
+// panelRowHeight 返回当前主题的记录行高度
+func (a *App) panelRowHeight() float32 {
+	if a.settings.Theme == themeGlass {
+		return glassPanelRowHeight
+	}
+	return panelRowHeight
+}
 
 // palette 按外观主题提供界面配色
 func (a *App) palette(c *ui.Context) palette {
 	p := pal(c)
 	if a.settings.Theme == themeGlass {
 		if p.dark {
-			p.bg = ui.Hex("#202226")
-			p.surface = ui.Hex("#2b2e33")
-			p.hover = ui.Hex("#2b2f36")
+			p.bg = ui.Hex("#202328")
+			p.surface = ui.Hex("#282d34")
+			p.hover = ui.Hex("#303030")
+			p.accentSoft = ui.Hex("#393939")
 		} else {
-			p.bg = ui.Hex("#f1f3f5")
-			p.hover = ui.Hex("#e8ebef")
-			p.accentSoft = p.accent.Alpha(0.12)
+			p.bg = ui.Hex("#f6f7f9")
+			p.surface = ui.Hex("#edf1f5")
+			p.hover = ui.Hex("#ececec")
+			p.accentSoft = ui.Hex("#e6e6e6")
 		}
+		p.accentLine = p.border
 		p.raised = p.hover
 		p.faint = p.muted
 	}
@@ -48,7 +64,129 @@ func (a *App) themeBackground(c *ui.Context, e ui.Element, p palette) {
 // themeSurface 按主题绘制控件材质并为可点击的玻璃控件启用按压反馈
 func (a *App) themeSurface(e ui.Element, background ui.Color, interactive bool) ui.Element {
 	if a.settings.Theme == themeGlass {
-		return e.Material(glass.Glass{Interactive: interactive})
+		return e.Material(glass.Glass{Tint: background.Alpha(0.35), Interactive: interactive})
 	}
 	return e.Background(background)
+}
+
+// themeSwitch 保留开关交互并按主题绘制普通或玻璃滑块
+func (a *App) themeSwitch(c *ui.Context, on *bool) ui.Element {
+	if a.settings.Theme != themeGlass {
+		return ui.Switch(c, on)
+	}
+	t := c.Theme()
+	sw := ui.SwitchBase(c, on).Size(t.Space(9), t.Space(5)).Radius(t.Space(2.5))
+	target := float32(0)
+	if *on {
+		target = 1
+	}
+	pos := sw.Animate("knob", target, 140*time.Millisecond)
+	sw.Background(t.Border.Mix(t.Text, 0.15).Mix(t.Accent, pos))
+	if c.Direction() == ui.RightToLeft {
+		pos = 1 - pos
+	}
+	sw.Draw(func(p *ui.Painter, r ui.Rect) {
+		width, height := r.H+6, r.H+2
+		knob := ui.Rect{X: r.X - 1 + pos*(r.W-width+2), Y: r.Y - 1, W: width, H: height}
+		p.Shadow(knob, height/2, 0, 1, 3, 0, ui.RGBA(0, 0, 0, 0.25))
+		glass.Paint(p, knob, height/2, glass.Glass{})
+	})
+	return sw
+}
+
+// themeButton 按主题绘制普通操作按钮并保留框架的点击和禁用行为
+func (a *App) themeButton(c *ui.Context, label string) ui.Element {
+	return a.themeSurface(ui.Button(c, label), c.Theme().Surface, true)
+}
+
+// themePrimaryButton 按主题绘制带强调色的主要操作按钮
+func (a *App) themePrimaryButton(c *ui.Context, label string) ui.Element {
+	button := ui.PrimaryButton(c, label)
+	if a.settings.Theme == themeGlass {
+		button.Material(glass.Glass{Tint: c.Theme().Accent, Interactive: true})
+	}
+	return button
+}
+
+// themeTextInput 按主题绘制文本输入框并保留编辑、提交与焦点行为
+func (a *App) themeTextInput(c *ui.Context, value *string) ui.Element {
+	if a.settings.Theme != themeGlass {
+		return ui.TextInput(c, value)
+	}
+	t := c.Theme()
+	field := ui.TextInputBase(c, value).Padding(t.Space(1.5), t.Space(2.5)).Radius(t.Radius).Border(1, t.Border)
+	a.themeSurface(field, t.Surface, false)
+	if field.Focused() {
+		field.BorderColor(t.Focus)
+	} else if field.Hovered() {
+		field.BorderColor(t.Border.Mix(t.Text, 0.25))
+	}
+	return field
+}
+
+// themeNumberInput 为数字输入与步进按钮绘制统一材质并复用框架的范围校验
+func (a *App) themeNumberInput(c *ui.Context, value *float64, lo, hi, step float64) ui.Element {
+	if a.settings.Theme != themeGlass {
+		return ui.NumberInput(c, value, lo, hi, step)
+	}
+	t := c.Theme()
+	parts := *t
+	parts.Surface, parts.Accent = ui.Transparent, t.Focus
+	c.SetTheme(&parts)
+	field := ui.NumberInput(c, value, lo, hi, step)
+	c.SetTheme(t)
+	return a.themeSurface(field.Radius(t.Radius), t.Surface, false)
+}
+
+// themeSegmented 按主题绘制分段选择并复用框架的选择、键盘与无障碍行为
+func (a *App) themeSegmented(c *ui.Context, selected *int, labels ...string) ui.Element {
+	if a.settings.Theme != themeGlass {
+		return ui.Segmented(c, selected, labels...)
+	}
+	t := c.Theme()
+	parts := ui.SegmentedBase(c, selected, len(labels))
+	parts.Track.AlignItems(ui.Stretch).Padding(t.Space(0.5)).Gap(t.Space(0.5)).Radius(t.Radius).
+		Background(t.Surface).Border(1, t.Border)
+	parts.Track.Children(func() {
+		for i, label := range labels {
+			segment := parts.Segment(i).Padding(t.Space(1), t.Space(3)).Radius(t.Radius - t.Space(0.5))
+			if i == *selected {
+				segment.Material(glass.Glass{Interactive: true})
+			} else if segment.Hovered() {
+				segment.Background(t.SurfaceHover)
+			}
+			segment.Children(func() { ui.Text(c, label).SingleLine() })
+		}
+	})
+	return parts.Track
+}
+
+// themeSelect 按主题绘制下拉选择及选项浮层并保留框架的选择和键盘行为
+func (a *App) themeSelect(c *ui.Context, selected *string, options []string) ui.Element {
+	if a.settings.Theme != themeGlass {
+		return ui.Select(c, selected, options)
+	}
+	t := c.Theme()
+	parts := ui.SelectBase(c, selected)
+	trigger := parts.Trigger.Padding(t.Space(1.5), t.Space(3.5)).Gap(t.Space(1.5)).Radius(t.Radius).
+		Justify(ui.SpaceBetween).MinWidth(t.Space(35)).Border(1, t.Border)
+	a.themeSurface(trigger, t.Surface, true)
+	trigger.Children(func() {
+		ui.Text(c, *selected).SingleLine()
+		ui.Icon(c, icoChevron).Size(t.Space(2.5), t.Space(2.5)).TextColor(t.TextMuted)
+	})
+	parts.Popup(func(panel ui.Element) {
+		panel.Margin(t.Space(1), 0, 0).Padding(t.Space(1)).Radius(t.Radius+2).Border(1, t.Border).
+			Material(glass.Glass{Tint: t.Surface.Alpha(0.6)}).Shadow(0, 6, 20, 0, ui.RGBA(0, 0, 0, 0.18))
+		ui.Scroll(c).MaxHeight(240).Shrink(1).Children(func() {
+			for _, option := range options {
+				item := parts.Item(option).Padding(t.Space(1.5), t.Space(2.5)).Radius(t.Radius)
+				if item.Highlighted() {
+					item.Background(t.SurfacePressed)
+				}
+				item.Children(func() { ui.Text(c, option).SingleLine() })
+			}
+		})
+	})
+	return trigger
 }

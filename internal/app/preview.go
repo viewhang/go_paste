@@ -118,10 +118,10 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 				ui.Text(c, r.URL).FontSize(11).TextColor(p.accent).SingleLine()
 			})
 			ui.Row(c).Gap(7).Children(func() {
-				if ui.PrimaryButton(c, locales.OpenInBrowser()).Clicked() {
+				if a.themePrimaryButton(c, locales.OpenInBrowser()).Clicked() {
 					a.later(func() { _ = mygo.Shell.OpenExternal(r.URL) })
 				}
-				if ui.Button(c, locales.CopyURL()).Clicked() {
+				if a.themeButton(c, locales.CopyURL()).Clicked() {
 					a.later(func() { a.copyText(r.Text) })
 				}
 			})
@@ -209,21 +209,10 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 func (a *App) previewFoot(c *ui.Context, p palette, r *types.Record) {
 	ui.Row(c).Padding(8, 12).Gap(7).AlignItems(ui.Center).BorderWidth(1, 0, 0, 0).
 		BorderColor(p.hair).Children(func() {
-		if ui.PrimaryButton(c, locales.Paste()).Clicked() {
+		if a.themePrimaryButton(c, locales.Paste()).Clicked() {
 			a.later(func() { a.paste(r, false) })
 		}
 		ui.Spacer(c)
-		del := ui.Button(c, "")
-		del.Size(28, 28).Padding(0).Radius(7).Cursor(ui.CursorPointer)
-		if del.Hovered() {
-			del.Background(p.hover)
-		}
-		del.Tooltip(locales.DeleteRecord())
-		del.Children(func() {
-			ui.Icon(c, icoTrash).Size(13, 13).TextColor(p.muted)
-		})
-		if del.Clicked() {
-			a.later(func() { a.remove(r) })
-		}
+		a.iconButton(c, p, icoTrash, locales.DeleteRecord(), func() { a.later(func() { a.remove(r) }) })
 	})
 }

@@ -18,7 +18,7 @@ func (a *App) settingsLanguage(c *ui.Context, p palette) {
 		}
 		current := i18n.Autonym(i18n.Locale())
 		selected := current
-		ui.Select(c, &selected, choices).Label(locales.Language())
+		a.themeSelect(c, &selected, choices).Label(locales.Language())
 		if selected != current {
 			tag := ""
 			for i, choice := range choices[1:] {

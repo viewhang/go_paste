@@ -19,7 +19,7 @@ func (a *App) settingsPrivacy(c *ui.Context, p palette) {
 	ui.Column(c).Gap(20).Children(func() {
 		a.card(c, p).Children(func() {
 			settingRow(c, p, locales.ExcludedApps(), "", func() {
-				ui.Button(c, locales.AddExcludedApp()).Disabled(a.choosingExcludedApps).OnClick(a.chooseExcludedApps)
+				a.themeButton(c, locales.AddExcludedApp()).Disabled(a.choosingExcludedApps).OnClick(a.chooseExcludedApps)
 			})
 			remove := -1
 			for i, app := range a.settings.ExcludedApps {
@@ -32,7 +32,7 @@ func (a *App) settingsPrivacy(c *ui.Context, p palette) {
 						ui.Image(c, icon).Size(24, 24).Fit(ui.Contain)
 					}
 					ui.Text(c, app.Name).Grow(1).MaxLines(1).Ellipsis("…").FontSize(12.5).TextColor(p.text)
-					if ui.Button(c, "×").Label(locales.RemoveExcludedApp(app.Name)).Clicked() {
+					if a.themeButton(c, "×").Label(locales.RemoveExcludedApp(app.Name)).Clicked() {
 						remove = i
 					}
 				})
@@ -48,7 +48,7 @@ func (a *App) settingsPrivacy(c *ui.Context, p palette) {
 			a.card(c, p).Children(func() {
 				confidential := a.settings.ExcludeConfidential
 				settingRow(c, p, locales.ExcludeConfidential(), "", func() {
-					ui.Switch(c, &confidential).Label(locales.ExcludeConfidential())
+					a.themeSwitch(c, &confidential).Label(locales.ExcludeConfidential())
 				})
 				if confidential != a.settings.ExcludeConfidential {
 					a.setSetting(func(s *types.Settings) { s.ExcludeConfidential = confidential })
@@ -56,7 +56,7 @@ func (a *App) settingsPrivacy(c *ui.Context, p palette) {
 				ui.Divider(c)
 				whitespace := a.settings.ExcludeWhitespace
 				settingRow(c, p, locales.ExcludeWhitespace(), "", func() {
-					ui.Switch(c, &whitespace).Label(locales.ExcludeWhitespace())
+					a.themeSwitch(c, &whitespace).Label(locales.ExcludeWhitespace())
 				})
 				if whitespace != a.settings.ExcludeWhitespace {
 					a.setSetting(func(s *types.Settings) { s.ExcludeWhitespace = whitespace })
@@ -64,7 +64,7 @@ func (a *App) settingsPrivacy(c *ui.Context, p palette) {
 				ui.Divider(c)
 				limit := float64(a.settings.ImageLimitMiB)
 				settingRow(c, p, locales.ImageSizeLimit(), locales.ImageSizeLimitHint(), func() {
-					ui.NumberInput(c, &limit, 0, 65536, 1).Label(locales.ImageSizeLimit())
+					a.themeNumberInput(c, &limit, 0, 65536, 1).Label(locales.ImageSizeLimit())
 					ui.Text(c, "MiB").MarginStart(6).TextColor(p.muted)
 				})
 				if int(limit) != a.settings.ImageLimitMiB {

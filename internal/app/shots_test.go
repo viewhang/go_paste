@@ -58,6 +58,11 @@ func TestShots(t *testing.T) {
 			a.preview = true
 			a.detail = a.records[2]
 		}},
+		{name: "bar-glass-preview", form: formBar, w: 1180, h: barHeight + barPreview, prep: func() {
+			a.settings.Theme = themeGlass
+			a.preview = true
+			a.detail = a.records[2]
+		}},
 		{name: "panel-search", form: formPanel, w: panelWidth, h: panelHeight, prep: func() {
 			a.query = "报告"
 			a.tab = 0
@@ -73,6 +78,16 @@ func TestShots(t *testing.T) {
 		{name: "bar-smart-list", form: formBar, w: 1180, h: barHeight, prep: func() {
 			a.newTab(true)
 			a.prompt.value = "文档"
+		}},
+		{name: "panel-glass-smart-list", form: formPanel, w: panelWidth, h: panelHeight, prep: func() {
+			a.settings.Theme = themeGlass
+			a.newTab(true)
+			a.prompt.value = "合同文档"
+		}},
+		{name: "panel-glass-smart-list-dark", form: formPanel, w: panelWidth, h: panelHeight, dark: true, prep: func() {
+			a.settings.Theme = themeGlass
+			a.newTab(true)
+			a.prompt.value = "合同文档"
 		}},
 	}
 	for _, s := range shots {

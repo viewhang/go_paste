@@ -210,7 +210,7 @@ func (a *App) listRules(c *ui.Context, ps *promptState) {
 	if ps.tab.MatchAny {
 		mode = 1
 	}
-	ui.Segmented(c, &mode, locales.MatchAll(), locales.MatchAny()).Label(locales.MatchMode())
+	a.themeSegmented(c, &mode, locales.MatchAll(), locales.MatchAny()).Label(locales.MatchMode())
 	ps.tab.MatchAny = mode == 1
 	remove := -1
 	for i := range ps.tab.Rules {
@@ -219,7 +219,7 @@ func (a *App) listRules(c *ui.Context, ps *promptState) {
 			fields := []types.RuleField{types.RuleKind, types.RuleExtension, types.RuleKeyword}
 			labels := []string{locales.RuleKind(), locales.RuleExtension(), locales.RuleKeyword()}
 			choice := labels[slices.Index(fields, rule.Field)]
-			ui.Select(c, &choice, labels).Width(112).Label(locales.RuleTypeLabel(i + 1))
+			a.themeSelect(c, &choice, labels).Width(112).Label(locales.RuleTypeLabel(i + 1))
 			if field := fields[slices.Index(labels, choice)]; field != rule.Field {
 				rule.Field, rule.Value = field, ""
 				if field == types.RuleKind {
@@ -230,16 +230,16 @@ func (a *App) listRules(c *ui.Context, ps *promptState) {
 				kinds := []types.Kind{types.KindText, types.KindImage, types.KindLink, types.KindColor, types.KindFile}
 				labels := []string{locales.TextKind(), locales.ImageKind(), locales.LinkKind(), locales.ColorKind(), locales.FileKind()}
 				kind := labels[slices.Index(kinds, types.Kind(rule.Value))]
-				ui.Select(c, &kind, labels).Grow(1).Label(locales.RuleValueLabel(i + 1))
+				a.themeSelect(c, &kind, labels).Grow(1).Label(locales.RuleValueLabel(i + 1))
 				rule.Value = string(kinds[slices.Index(labels, kind)])
 			} else {
 				placeholder := locales.Keyword()
 				if rule.Field == types.RuleExtension {
 					placeholder = locales.ExtensionExample()
 				}
-				ui.TextInput(c, &rule.Value).Grow(1).Placeholder(placeholder).Label(locales.RuleValueLabel(i + 1))
+				a.themeTextInput(c, &rule.Value).Grow(1).Placeholder(placeholder).Label(locales.RuleValueLabel(i + 1))
 			}
-			if ui.Button(c, "×").Label(locales.RemoveRuleLabel(i + 1)).Clicked() {
+			if a.themeButton(c, "×").Label(locales.RemoveRuleLabel(i + 1)).Clicked() {
 				remove = i
 			}
 		})
@@ -247,7 +247,7 @@ func (a *App) listRules(c *ui.Context, ps *promptState) {
 	if remove >= 0 {
 		ps.tab.Rules = slices.Delete(ps.tab.Rules, remove, remove+1)
 	}
-	if ui.Button(c, locales.AddRule()).Clicked() {
+	if a.themeButton(c, locales.AddRule()).Clicked() {
 		ps.tab.Rules = append(ps.tab.Rules, types.ListRule{Field: types.RuleKeyword})
 	}
 }

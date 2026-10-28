@@ -142,7 +142,7 @@ func (a *App) settingsShortcuts(c *ui.Context, p palette) {
 				ui.Text(c, a.shortcutError).FontSize(11).TextColor(p.accent)
 			}
 			ui.Text(c, locales.ShortcutRecorderHint()).FontSize(11).TextColor(p.muted)
-			if ui.Button(c, locales.RestoreShortcuts()).Clicked() {
+			if a.themeButton(c, locales.RestoreShortcuts()).Clicked() {
 				a.recording, a.shortcutError = "", ""
 				a.setSetting(func(s *types.Settings) {
 					s.Hotkey, s.Shortcuts = types.DefaultHotkey, nil
@@ -157,11 +157,14 @@ func (a *App) shortcutRecorder(c *ui.Context, p palette, id, title string) {
 	recording := a.recording == id
 	rec := ui.Box(c).Key(id).Height(28).MinWidth(110).Padding(0, 11).Radius(7).Center()
 	rec.Label(locales.ShortcutLabel(title)).Focusable().Cursor(ui.CursorPointer).Border(1, p.border)
+	background := p.surface
 	if recording {
-		rec.Border(1, p.accent).Background(p.accentSoft).AutoFocus()
+		rec.Border(1, c.Theme().Focus).AutoFocus()
+		background = p.accentSoft
 	} else if rec.Hovered() {
-		rec.Background(p.hover)
+		background = p.hover
 	}
+	a.themeSurface(rec, background, true)
 	rec.Children(func() {
 		txt := prettyHotkey(a.shortcutAccel(id))
 		if recording {

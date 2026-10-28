@@ -25,11 +25,12 @@ var (
 	icoFolder    = icon(`<path d="M4 20a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2Z"/>`)
 	icoPlus      = icon(`<path d="M12 5v14"/><path d="M5 12h14"/>`)
 	icoSearch    = icon(`<circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/>`)
-	icoBar       = icon(`<rect width="20" height="7" x="2" y="14" rx="2"/><path d="M6 7h.01"/><path d="M12 5h.01"/><path d="M18 8h.01"/>`)
-	icoPanel     = icon(`<rect width="14" height="18" x="5" y="3" rx="2"/><path d="M9 7h6"/><path d="M9 11h6"/>`)
 	icoShield    = icon(`<path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>`)
 	icoClipboard = icon(`<rect width="14" height="18" x="5" y="4" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6"/><path d="M9 14h4"/>`)
 )
+
+// icoChevron 表示下拉选择入口
+var icoChevron = icon(`<path d="m6 9 6 6 6-6"/>`)
 
 func kindIcon(k types.Kind) *ui.SVG {
 	switch k {

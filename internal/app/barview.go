@@ -35,7 +35,7 @@ func (a *App) barBody(c *ui.Context, p palette) {
 	})
 }
 
-// barHeader 显示长条的搜索、用户列表及紧随列表的新增入口
+// barHeader 显示长条的搜索、用户列表、新增入口与统一设置菜单
 func (a *App) barHeader(c *ui.Context, p palette) {
 	ui.Row(c).Padding(9, 18).Gap(8).AlignItems(ui.Center).Children(func() {
 		a.searchBox(c, p, true)
@@ -50,7 +50,7 @@ func (a *App) barHeader(c *ui.Context, p palette) {
 					active := i == a.tab
 					chip := ui.Row(c).Key(tab.ID).Padding(3, 8).Radius(6).Focusable().Cursor(ui.CursorPointer)
 					if active {
-						a.themeSurface(chip, p.accentSoft, true)
+						chip.Background(p.accentSoft)
 					} else if chip.Hovered() {
 						chip.Background(p.hover)
 					}
@@ -80,8 +80,7 @@ func (a *App) barHeader(c *ui.Context, p palette) {
 			})
 		})
 
-		a.iconButton(c, p, icoPanel, locales.SwitchToPointer(), func() { a.setForm(formPanel) })
-		a.iconButton(c, p, icoGear, locales.Settings(), a.openSettings)
+		a.settingsButton(c, p)
 	})
 }
 

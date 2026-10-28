@@ -29,14 +29,15 @@ func (a *App) quickPasteRange(c *ui.Context) (first, last int) {
 	} else {
 		_, visibleLast := a.list.Visible()
 		_, height := c.Size()
-		step := float64(panelRowHeight + panelRowGap)
+		rowHeight := a.panelRowHeight()
+		step := float64(rowHeight + panelRowGap)
 		first = int(math.Ceil(float64(a.listScroll.Y-panelListPadding) / step))
 		padding := float32(panelListPadding)
 		if a.settings.Theme == themeGlass {
 			padding += glassHeaderHeight
 		}
 		bottom := height - statusHeight - a.list.Bounds(c).Y
-		last = min(visibleLast+1, int(math.Floor(float64(a.listScroll.Y+bottom-padding-panelRowHeight)/step))+1)
+		last = min(visibleLast+1, int(math.Floor(float64(a.listScroll.Y+bottom-padding-rowHeight)/step))+1)
 	}
 	first = min(n, max(0, first))
 	last = max(first, min(n, last, first+len(quickPasteKeys)))

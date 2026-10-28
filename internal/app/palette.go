@@ -69,10 +69,14 @@ func pal(c *ui.Context) palette {
 	return p
 }
 
-// applyTheme nudges the system theme into the app's own: one step smaller
-// text, rounder corners and a calm spacing.
-func applyTheme(c *ui.Context) {
-	t := *c.Theme()
+// applyTheme 统一当前主题的控件配色、间距、圆角与焦点状态
+func (a *App) applyTheme(c *ui.Context) {
+	current := c.Theme()
+	t := *ui.LightTheme()
+	if current.Dark {
+		t = *ui.DarkTheme()
+	}
+	t.Font, t.FontSize = current.Font, current.FontSize
 	t.Radius = 9
 	t.Spacing = 4
 	if t.FontSize <= 0 || t.FontSize > 14 {
@@ -90,6 +94,15 @@ func applyTheme(c *ui.Context) {
 		t.AccentPressed = ui.Hex("#3948e0")
 		t.AccentText = ui.Hex("#ffffff")
 		t.Focus = ui.Hex("#5468ff")
+	}
+	if a.settings.Theme == themeGlass {
+		c.SetTheme(&t)
+		p := a.palette(c)
+		t.Background, t.Surface = p.bg, p.surface
+		t.SurfaceHover, t.SurfacePressed = p.hover, p.accentSoft
+		t.Text, t.TextMuted, t.Border = p.text, p.muted, p.border
+		t.Selection, t.Focus = p.accentSoft, p.text.Alpha(0.45)
+		t.Scrollbar = p.muted.Alpha(0.6)
 	}
 	c.SetTheme(&t)
 }

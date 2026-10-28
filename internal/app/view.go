@@ -17,7 +17,7 @@ func (a *App) view(c *ui.Context) {
 	if !a.preview {
 		a.previewImage = cachedBitmap{}
 	}
-	applyTheme(c)
+	a.applyTheme(c)
 	p := a.palette(c)
 	a.acted = false
 	a.vis = a.filtered()

@@ -72,21 +72,24 @@ func swatchTile(c *ui.Context, color string, size float32) ui.Element {
 
 // ---- panel rows ----
 
-// panelRow 显示记录内容、来源图标、复制时间与快速粘贴编号并支持拖拽
+// panelRow 按主题展示记录标题、来源图标、复制时间与快速粘贴编号并支持拖拽
 func (a *App) panelRow(c *ui.Context, r *types.Record, i int) {
 	p := a.palette(c)
 	sel := i == a.sel
-	row := ui.Row(c).Height(panelRowHeight).Padding(9, 10).Gap(10).Radius(10).AlignItems(ui.Center)
+	row := ui.Row(c).Height(a.panelRowHeight()).Padding(9, 10).Gap(10).Radius(10).AlignItems(ui.Center)
 	row.Focusable().Cursor(ui.CursorPointer)
 	background, border := p.surface, p.hair
 	iconSize, titleSize, timeSize := float32(40), float32(12.5), float32(10)
 	if a.settings.Theme == themeGlass {
 		background, border = ui.Transparent, ui.Transparent
-		iconSize, titleSize, timeSize = 34, 13, 11
+		iconSize, titleSize, timeSize = 30, 13, 11
+		row.Radius(11).Gap(11)
 	}
 	if sel {
 		background = p.accentSoft
-		border = p.accentLine
+		if a.settings.Theme != themeGlass {
+			border = p.accentLine
+		}
 	} else if row.Hovered() {
 		background = p.raised
 		if a.settings.Theme != themeGlass {
@@ -144,7 +147,7 @@ func (a *App) barCard(c *ui.Context, r *types.Record, i int) {
 		background = p.raised
 	}
 	if sel && a.settings.Theme == themeGlass {
-		background = p.surface.Mix(p.accent, 0.12)
+		background = p.accentSoft
 		card.BorderColor(p.accentLine)
 	}
 	card.Background(background)

@@ -7,35 +7,32 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"gopaste/internal/locales"
+	"gopaste/internal/types"
 )
 
-// panelView 按主题显示记录面板并让玻璃控制区悬浮于滚动列表上方
+// panelView 按主题显示记录面板并让整块玻璃顶栏悬浮于滚动列表上方
 func (a *App) panelView(c *ui.Context, p palette) {
 	box := ui.Column(c).Fill().Radius(14).Clip()
 	if a.settings.Theme == themeGlass {
-		box.Radius(18)
-	}
-	if c.Vibrancy() {
+		box.Radius(20).Background(p.bg)
+		if c.Vibrancy() {
+			box.Background(p.bg.Alpha(0.92))
+		}
+	} else if c.Vibrancy() {
 		box.Background(p.surface.Alpha(0.9))
 	} else {
 		box.Background(p.bg)
 	}
-	a.themeBackground(c, box, p)
 	box.Children(func() {
 		if a.settings.Theme == themeGlass && !a.preview {
 			ui.Box(c).Grow(1).Children(func() {
 				a.listPane(c, p)
-				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Height(glassHeaderHeight + 10).
-					PassThrough().Material(glass.ScrollEdge{Background: p.bg})
 				ui.Column(c).Absolute().Top(0).Left(0).Right(0).PassThrough().Children(func() {
-					a.headerRow(c, p, false)
-					a.tabsRow(c, p)
+					a.panelHeader(c, p)
 				})
 			})
 		} else {
-			a.headerRow(c, p, false)
-			a.tabsRow(c, p)
-			hairline(c, p)
+			a.panelHeader(c, p)
 			if a.preview {
 				a.previewPane(c, p)
 			} else {
@@ -46,19 +43,71 @@ func (a *App) panelView(c *ui.Context, p palette) {
 	})
 }
 
-// headerRow 显示搜索框、设置与面板形态切换入口
+// panelHeader 按主题将搜索与列表分组绘制为统一顶栏
+func (a *App) panelHeader(c *ui.Context, p palette) {
+	header := ui.Column(c)
+	if a.settings.Theme == themeGlass {
+		header.Height(glassHeaderHeight).PassThrough().Material(glass.Glass{Tint: p.surface.Alpha(0.6)})
+		header.BorderWidth(0, 0, 1, 0).BorderColor(p.hair)
+	}
+	header.Children(func() {
+		a.headerRow(c, p, false)
+		a.tabsRow(c, p)
+		if a.settings.Theme != themeGlass {
+			hairline(c, p)
+		}
+	})
+}
+
+// headerRow 显示搜索框与统一设置菜单入口
 func (a *App) headerRow(c *ui.Context, p palette, compact bool) {
 	row := ui.Row(c).Padding(11, 12).Gap(7).AlignItems(ui.Center)
 	if a.settings.Theme == themeGlass {
 		row.PassThrough()
+		if !compact {
+			row.Padding(14, 14, 10)
+		}
 	}
 	row.Children(func() {
 		a.searchBox(c, p, compact)
-		a.iconButton(c, p, icoGear, locales.Settings(), a.openSettings)
-		if compact {
-			a.iconButton(c, p, icoPanel, locales.SwitchToPointer(), func() { a.setForm(formPanel) })
-		} else {
-			a.iconButton(c, p, icoBar, locales.SwitchToBar(), func() { a.setForm(formBar) })
+		a.settingsButton(c, p)
+	})
+}
+
+// settingsButton 为两种主题和布局提供设置分类、形态切换与暂停记录菜单
+func (a *App) settingsButton(c *ui.Context, p palette) {
+	button := ui.ButtonBase(c).Size(30, 30).Radius(8).Cursor(ui.CursorPointer).
+		Label(locales.Settings()).Tooltip(locales.Settings())
+	if button.Hovered() {
+		button.Background(p.hover)
+	}
+	button.Children(func() {
+		ui.Icon(c, icoGear).Size(18, 18).TextColor(p.muted)
+	})
+	button.Menu(func(m *ui.Menu) {
+		for _, page := range []struct{ id, title string }{
+			{"general", locales.Appearance()},
+			{"shortcuts", locales.Shortcuts()},
+			{"about", locales.About()},
+		} {
+			if m.Item(page.title).Chosen() {
+				a.settingsPage = page.id
+				a.later(a.openSettings)
+			}
+		}
+		m.Separator()
+		form, label := formBar, locales.SwitchToBar()
+		if a.form == formBar {
+			form, label = formPanel, locales.SwitchToPointer()
+		}
+		if m.Item(label).Chosen() {
+			a.later(func() { a.setForm(form) })
+		}
+		if m.Item(locales.PauseRecording()).Checked(a.settings.Paused).Chosen() {
+			a.setSetting(func(s *types.Settings) { s.Paused = !s.Paused })
+			if !a.settings.Paused && a.watch != nil {
+				a.watch.Resync()
+			}
 		}
 	})
 }
@@ -66,7 +115,11 @@ func (a *App) headerRow(c *ui.Context, p palette, compact bool) {
 // searchBox 绘制自动聚焦的搜索框并处理搜索、删除、预览、粘贴与长条导航
 func (a *App) searchBox(c *ui.Context, p palette, compact bool) {
 	box := ui.Row(c).Gap(6).AlignItems(ui.Center).Radius(8).Padding(0, 8)
-	a.themeSurface(box, p.hover, false)
+	if a.settings.Theme == themeGlass {
+		box.Background(p.bg)
+	} else {
+		a.themeSurface(box, p.hover, false)
+	}
 	box.Border(1, p.border)
 	if compact {
 		box.Width(240).Height(30)
@@ -74,9 +127,9 @@ func (a *App) searchBox(c *ui.Context, p palette, compact bool) {
 		box.Grow(1).Height(32)
 	}
 	if a.settings.Theme == themeGlass {
-		box.Radius(10).BorderColor(ui.Transparent)
+		box.Radius(10).BorderColor(p.hair)
 		if !compact {
-			box.Height(36)
+			box.Height(38)
 		}
 	}
 	if a.search.Focused(c) {
@@ -147,12 +200,12 @@ func (a *App) searchBox(c *ui.Context, p palette, compact bool) {
 	})
 }
 
-// tabsRow 显示全部记录、用户列表及新增列表入口
+// tabsRow 显示列表分组与新增入口并在横向滚动区域外保留对称留白
 func (a *App) tabsRow(c *ui.Context, p palette) {
 	tabs := a.tabs()
-	scroll := ui.ScrollHorizontal(c).Height(32).Padding(0, 8).Gap(4)
+	scroll := ui.ScrollHorizontal(c).Height(32).Margin(0, 8).Gap(4)
 	if a.settings.Theme == themeGlass {
-		scroll.PassThrough()
+		scroll.Height(40).Margin(0, 14).Padding(0, 0, 10)
 	}
 	scroll.Children(func() {
 		row := ui.Row(c).Gap(4).AlignItems(ui.Center)
@@ -161,9 +214,16 @@ func (a *App) tabsRow(c *ui.Context, p palette) {
 				i, tab := i, tab
 				active := i == a.tab
 				chip := ui.Row(c).Key(tab.ID).Padding(4, 9).Radius(7).Gap(5).Focusable()
+				if a.settings.Theme == themeGlass {
+					chip.Height(28).Padding(4, 11).Radius(8)
+				}
 				chip.Cursor(ui.CursorPointer)
 				if active {
-					a.themeSurface(chip, p.accent, true)
+					if a.settings.Theme == themeGlass {
+						chip.Background(p.accentSoft)
+					} else {
+						a.themeSurface(chip, p.accent, true)
+					}
 				} else if chip.Hovered() {
 					chip.Background(p.hover)
 				}
@@ -198,9 +258,7 @@ func (a *App) tabsRow(c *ui.Context, p palette) {
 func (a *App) addTabButton(c *ui.Context, p palette) {
 	plus := ui.Row(c).Padding(4, 7).Radius(7).Focusable().Cursor(ui.CursorPointer)
 	plus.Label(locales.AddList()).Tooltip(locales.AddList())
-	if a.settings.Theme == themeGlass {
-		a.themeSurface(plus, p.hover, true)
-	} else if plus.Hovered() {
+	if plus.Hovered() {
 		plus.Background(p.hover)
 	}
 	plus.Children(func() {
@@ -226,7 +284,7 @@ func (a *App) listPane(c *ui.Context, p palette) {
 		a.panelRow(c, a.recordAt(i), i)
 	}).Grow(1).TrackScroll(&a.listScroll).Padding(panelListPadding, 7).Gap(panelRowGap)
 	if a.settings.Theme == themeGlass {
-		list.Padding(glassHeaderHeight+panelListPadding, 7, panelListPadding).ScrollbarInsets(glassHeaderHeight, 0, 0)
+		list.Padding(glassHeaderHeight+panelListPadding, 10, panelListPadding).ScrollbarInsets(glassHeaderHeight, 0, 0)
 	}
 	list.Children(func() {
 		if n == 0 {
@@ -242,9 +300,7 @@ func (a *App) emptyState(c *ui.Context, p palette) {
 		ui.Text(c, a.emptyTitle()).FontSize(12.5).TextColor(p.muted)
 		if a.query != "" {
 			ui.Text(c, locales.EmptySearchHint()).FontSize(11).TextColor(p.faint)
-		} else if a.tab != 0 {
-			ui.Text(c, locales.EmptyFilterHint()).FontSize(11).TextColor(p.faint)
-		} else {
+		} else if a.tab == 0 {
 			ui.Text(c, locales.EmptyHistoryHint()).FontSize(11).TextColor(p.faint)
 		}
 	})
@@ -258,7 +314,7 @@ func (a *App) emptyTitle() string {
 	return locales.EmptyHistory()
 }
 
-// statusRow 显示列表数量、操作反馈、权限状态与快捷键提示
+// statusRow 显示列表数量、操作反馈与权限状态
 func (a *App) statusRow(c *ui.Context, p palette) {
 	if !a.hintUntil.IsZero() {
 		if remaining := a.hintUntil.Sub(c.Now()); remaining > 0 {
@@ -290,17 +346,8 @@ func (a *App) statusRow(c *ui.Context, p palette) {
 			if warn.Clicked() {
 				a.later(a.requestAccess)
 			}
-			return
 		}
-		ui.Text(c, a.hintLine()).FontSize(10.5).TextColor(p.faint)
 	})
-}
-
-// hintLine 显示自定义粘贴与预览快捷键提示
-func (a *App) hintLine() string {
-	paste := prettyHotkey(a.shortcutAccel("paste"))
-	preview := prettyHotkey(a.shortcutAccel("preview"))
-	return locales.PanelHint(paste, preview)
 }
 
 // ---- small shared widgets ----
@@ -309,13 +356,11 @@ func hairline(c *ui.Context, p palette) {
 	ui.Box(c).Height(1).Background(p.hair)
 }
 
-// iconButton 显示带提示的图标按钮并按主题配置玻璃按压反馈
+// iconButton 显示统一的轻量图标按钮与悬停反馈
 func (a *App) iconButton(c *ui.Context, p palette, svg *ui.SVG, tip string, onClick func()) {
-	b := ui.Button(c, "").Size(28, 28).Padding(0).Radius(8)
+	b := ui.ButtonBase(c).Size(28, 28).Padding(0).Radius(8).Label(tip)
 	b.Cursor(ui.CursorPointer)
-	if a.settings.Theme == themeGlass {
-		a.themeSurface(b.Radius(14), p.hover, true)
-	} else if b.Hovered() {
+	if b.Hovered() {
 		b.Background(p.hover)
 	}
 	b.Tooltip(tip)

@@ -12,9 +12,117 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"gopaste/internal/locales"
 	"gopaste/internal/store"
 	"gopaste/internal/types"
 )
+
+// TestThemedControls 验证两种主题明暗外观中的按钮禁用、文本编辑、数字范围与选择控件键盘操作
+func TestThemedControls(t *testing.T) {
+	for _, theme := range []int{themeClassic, themeGlass} {
+		for _, dark := range []bool{false, true} {
+			t.Run(fmt.Sprintf("theme-%d-dark-%v", theme, dark), func(t *testing.T) {
+				a := NewApp()
+				a.settings.Theme = theme
+				text, choice := "", "甲"
+				number, segment, clicks, disabled := float64(2), 0, 0, false
+				tt := ui.NewTester(func(c *ui.Context) {
+					a.applyTheme(c)
+					c.Root().Background(c.Theme().Background)
+					ui.Column(c).Padding(12).Gap(8).Children(func() {
+						ui.Row(c).Gap(8).Children(func() {
+							if a.themeButton(c, "执行操作").Clicked() {
+								clicks++
+							}
+							if a.themePrimaryButton(c, "不可用操作").Disabled(true).Clicked() {
+								disabled = true
+							}
+						})
+						a.themeTextInput(c, &text).Label("输入框")
+						a.themeNumberInput(c, &number, 1, 4, 1).AlignSelf(ui.Start).Label("数量")
+						a.themeSegmented(c, &segment, "第一项", "第二项")
+						a.themeSelect(c, &choice, []string{"甲", "乙"}).Label("选择框")
+					})
+				}, 360, 320)
+				tt.SetDark(dark)
+				// click 点击指定控件并检查其可访问入口
+				click := func(label string) {
+					t.Helper()
+					if err := tt.Click(label); err != nil {
+						t.Fatal(err)
+					}
+				}
+				click("执行操作")
+				tt.Key(0, ui.KeySpace)
+				click("不可用操作")
+				if clicks != 2 || disabled {
+					t.Fatal("按钮点击、键盘或禁用行为不正确")
+				}
+				click("输入框")
+				tt.Type("测试输入")
+				if text != "测试输入" {
+					t.Fatal("输入框未保留编辑内容")
+				}
+				click("数量")
+				tt.Key(ui.Cmd, ui.KeyA)
+				tt.Type("3")
+				tt.Key(0, ui.KeyUp)
+				tt.Key(0, ui.KeyUp)
+				if number != 4 {
+					t.Fatalf("数字编辑或步进范围不正确：%v", number)
+				}
+				click("第二项")
+				if segment != 1 {
+					t.Fatal("分段点击未切换选项")
+				}
+				tt.Key(0, ui.KeyLeft)
+				if segment != 0 {
+					t.Fatal("分段方向键未切换选项")
+				}
+				click("选择框")
+				tt.Key(0, ui.KeyDown)
+				tt.Key(0, ui.KeyEnter)
+				if choice != "乙" {
+					t.Fatal("下拉框方向键与确认未选择选项")
+				}
+				click("选择框")
+				if os.Getenv("SHOTS") != "" {
+					out := filepath.Join("..", "..", ".mygo", "shots")
+					if err := os.MkdirAll(out, 0o755); err != nil {
+						t.Fatal(err)
+					}
+					writePNG(t, filepath.Join(out, fmt.Sprintf("controls-theme-%d-dark-%v.png", theme, dark)), tt.Image())
+				}
+				tt.Key(0, ui.KeyEscape)
+				if choice != "乙" || tt.HasText("甲") {
+					t.Fatal("关闭下拉浮层后选择丢失或选项未隐藏")
+				}
+			})
+		}
+	}
+}
+
+// TestThemeSwitchInteraction 验证两种主题的开关均支持点击聚焦与空格切换
+func TestThemeSwitchInteraction(t *testing.T) {
+	for _, theme := range []int{themeClassic, themeGlass} {
+		t.Run(fmt.Sprintf("theme-%d", theme), func(t *testing.T) {
+			a := NewApp()
+			a.settings.Theme = theme
+			on := false
+			tt := ui.NewTester(func(c *ui.Context) {
+				a.applyTheme(c)
+				a.themeSwitch(c, &on).Label("测试开关")
+			}, 80, 40)
+			if err := tt.Click("测试开关"); err != nil || !on || !tt.Focused("测试开关") {
+				t.Fatalf("点击开关未启用或未聚焦：%v", err)
+			}
+			tt.Key(0, ui.KeySpace)
+			if on {
+				t.Fatal("空格未关闭开关")
+			}
+		})
+	}
+}
 
 // TestThemeSwitchAndPersistence 验证设置中切换主题会改变面板绘制并保存选择
 func TestThemeSwitchAndPersistence(t *testing.T) {
@@ -59,7 +167,91 @@ func TestThemeSwitchAndPersistence(t *testing.T) {
 	}
 }
 
-// TestGlassFloatingHeader 验证内容穿过悬浮控制区且搜索、滚动与键盘选择正常
+// TestPanelSettingsMenu 验证两种主题与布局共用设置菜单且底栏不显示快捷键提示
+func TestPanelSettingsMenu(t *testing.T) {
+	for _, theme := range []int{themeClassic, themeGlass} {
+		for _, form := range []int{formPanel, formBar} {
+			t.Run(fmt.Sprintf("theme-%d-form-%d", theme, form), func(t *testing.T) {
+				a := NewApp()
+				a.form, a.settings = form, types.DefaultSettings()
+				a.settings.Theme = theme
+				initTestStore(t, a)
+				width, height := panelWidth, panelHeight
+				if form == formBar {
+					width, height = 1180, barHeight
+				}
+				tt := ui.NewTester(a.view, width, height)
+				hint := locales.PanelHint(prettyHotkey(a.shortcutAccel("paste")), prettyHotkey(a.shortcutAccel("preview")))
+				if tt.HasText(hint) {
+					t.Fatal("底栏仍显示快捷键提示")
+				}
+				for _, paused := range []bool{true, false} {
+					if err := tt.Click(locales.Settings()); err != nil {
+						t.Fatal(err)
+					}
+					if err := tt.ChooseMenuItem(locales.PauseRecording()); err != nil {
+						t.Fatal(err)
+					}
+					if a.settings.Paused != paused || a.st.Settings().Paused != paused {
+						t.Fatal("设置菜单未保存暂停记录状态")
+					}
+				}
+				if err := tt.Click(locales.Settings()); err != nil {
+					t.Fatal(err)
+				}
+				target, label := formBar, locales.SwitchToBar()
+				if form == formBar {
+					target, label = formPanel, locales.SwitchToPointer()
+				}
+				if err := tt.ChooseMenuItem(label); err != nil || a.form != target {
+					t.Fatalf("设置菜单无法切换面板形态：%v", err)
+				}
+			})
+		}
+	}
+}
+
+// TestTabsScrollbarDrag 验证两种主题的横向滚动条保持悬停显示并支持拖动
+func TestTabsScrollbarDrag(t *testing.T) {
+	for _, theme := range []int{themeClassic, themeGlass} {
+		t.Run(fmt.Sprintf("theme-%d", theme), func(t *testing.T) {
+			a := NewApp()
+			a.form, a.settings = formPanel, types.DefaultSettings()
+			a.settings.Theme = theme
+			for i := range 12 {
+				a.settings.CustomTabs = append(a.settings.CustomTabs, types.Tab{ID: fmt.Sprint(i), Name: fmt.Sprintf("工作列表%02d", i)})
+			}
+			tt := ui.NewTester(func(c *ui.Context) {
+				a.applyTheme(c)
+				p := a.palette(c)
+				c.Root().Background(p.bg)
+				a.tabsRow(c, p)
+			}, panelMinWidth, 40)
+			before, ok := tt.Find(locales.All())
+			if !ok {
+				t.Fatal("列表分组未显示")
+			}
+			tt.Move(before.X+before.W/2, before.Y+before.H/2)
+			y := float32(26)
+			if theme == themeGlass {
+				y = 34
+			}
+			thumb := tt.Image().RGBAAt(32, int(y))
+			tt.Move(32, y)
+			if tt.Image().RGBAAt(32, int(y)) != thumb {
+				t.Fatal("鼠标移入滚动条后滚动条消失")
+			}
+			tt.Press(32, y)
+			tt.Move(192, y)
+			tt.Release(192, y)
+			if after, ok := tt.Find(locales.All()); ok && after == before {
+				t.Fatal("拖动滚动条未改变分组位置")
+			}
+		})
+	}
+}
+
+// TestGlassFloatingHeader 验证整块玻璃顶栏保持固定且搜索、滚动与键盘选择正常
 func TestGlassFloatingHeader(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		for _, size := range []struct{ w, h int }{{panelWidth, panelHeight}, {panelMinWidth, panelMinHeight}} {
@@ -93,7 +285,7 @@ func TestGlassFloatingHeader(t *testing.T) {
 				if !ok || first.Y < glassHeaderHeight {
 					t.Fatal("初始记录被悬浮控制区遮挡")
 				}
-				region := image.Rect(int(search.X), int(search.Y), int(search.X+search.W), int(search.Y+search.H))
+				region := image.Rect(0, 0, size.w, glassHeaderHeight)
 				crop := image.NewRGBA(region)
 				draw.Draw(crop, region, tt.Image(), region.Min, draw.Src)
 				before := bytes.Clone(crop.Pix)
@@ -107,7 +299,7 @@ func TestGlassFloatingHeader(t *testing.T) {
 				}
 				draw.Draw(crop, region, tt.Image(), region.Min, draw.Src)
 				if bytes.Equal(before, crop.Pix) {
-					t.Fatal("搜索框玻璃未采样滚动内容")
+					t.Fatal("顶栏玻璃未采样滚动内容")
 				}
 				if os.Getenv("SHOTS") != "" {
 					out := filepath.Join("..", "..", ".mygo", "shots")

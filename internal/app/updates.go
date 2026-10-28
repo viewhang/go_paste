@@ -17,7 +17,7 @@ func (a *App) settingsUpdates(c *ui.Context, p palette) {
 				version = locales.DevelopmentVersion()
 			}
 			settingRow(c, p, locales.CurrentVersion(), version, func() {
-				if ui.Button(c, locales.CheckUpdates()).Clicked() {
+				if a.themeButton(c, locales.CheckUpdates()).Clicked() {
 					updater.CheckForUpdates()
 				}
 			})
@@ -25,9 +25,9 @@ func (a *App) settingsUpdates(c *ui.Context, p palette) {
 			ui.Column(c).Gap(6).Children(func() {
 				ui.Text(c, locales.UpdateMirror()).FontSize(12.5).TextColor(p.text)
 				ui.Row(c).Gap(8).Children(func() {
-					input := ui.TextInput(c, &a.updateMirrorInput).Grow(1).
+					input := a.themeTextInput(c, &a.updateMirrorInput).Grow(1).
 						Placeholder("https://example.com").Label(locales.UpdateMirrorAddress())
-					if ui.Button(c, locales.Save()).Clicked() || input.Submitted() {
+					if a.themeButton(c, locales.Save()).Clicked() || input.Submitted() {
 						a.saveUpdateMirror()
 					}
 				})
@@ -42,7 +42,7 @@ func (a *App) settingsUpdates(c *ui.Context, p palette) {
 			ui.Divider(c)
 			automatic := updater.AutomaticChecks()
 			settingRow(c, p, locales.AutoCheckUpdates(), "", func() {
-				ui.Switch(c, &automatic).Label(locales.AutoCheckUpdates())
+				a.themeSwitch(c, &automatic).Label(locales.AutoCheckUpdates())
 			})
 			if automatic != updater.AutomaticChecks() {
 				updater.SetAutomaticChecks(automatic)
@@ -50,7 +50,7 @@ func (a *App) settingsUpdates(c *ui.Context, p palette) {
 			ui.Divider(c)
 			download := updater.AutomaticDownloads()
 			settingRow(c, p, locales.AutoInstallUpdates(), "", func() {
-				ui.Switch(c, &download).Label(locales.AutoInstallUpdates()).Disabled(!automatic)
+				a.themeSwitch(c, &download).Label(locales.AutoInstallUpdates()).Disabled(!automatic)
 			})
 			if download != updater.AutomaticDownloads() {
 				updater.SetAutomaticDownloads(download)

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/ui"
 
 	"gopaste/internal/locales"
@@ -12,9 +13,9 @@ import (
 	"gopaste/internal/types"
 )
 
-// settingsView 显示固定的设置分类菜单与独立滚动的分类明细
+// settingsView 按当前主题显示固定分类菜单与独立滚动的设置明细
 func (a *App) settingsView(c *ui.Context) {
-	applyTheme(c)
+	a.applyTheme(c)
 	p := a.palette(c)
 	root := c.Root().Background(p.bg)
 	a.themeBackground(c, root, p)
@@ -31,9 +32,15 @@ func (a *App) settingsView(c *ui.Context) {
 			}
 			menu := ui.Sidebar(c, &a.settingsPage, func() {
 				for _, page := range pages {
-					ui.SidebarItem(c, page.id, nil, page.title)
+					item := ui.SidebarItem(c, page.id, nil, page.title)
+					if a.settings.Theme == themeGlass && page.id == a.settingsPage {
+						item.Background(p.accentSoft).TextColor(p.text)
+					}
 				}
 			}).Width(160).Background(p.bg)
+			if a.settings.Theme == themeGlass {
+				menu.Material(glass.Glass{Tint: p.surface.Alpha(0.6)})
+			}
 			if menu.Changed() {
 				a.recording = ""
 			}
@@ -49,11 +56,14 @@ func (a *App) settingsView(c *ui.Context) {
 	})
 }
 
-// settingsHeader 绘制可拖动的设置标题栏并为系统窗口按钮预留空间
+// settingsHeader 按当前主题绘制可拖动标题栏并避让系统窗口按钮
 func (a *App) settingsHeader(c *ui.Context, p palette) ui.Element {
 	bar := c.TitleBar()
 	head := ui.Row(c).Height(max(bar.Height, 46)).
 		Padding(0, bar.Right+14, 0, bar.Left+16).Gap(10).AlignItems(ui.Center).DragWindow()
+	if a.settings.Theme == themeGlass {
+		head.Material(glass.Glass{Tint: p.surface.Alpha(0.6)})
+	}
 	head.Children(func() {
 		ui.Text(c, locales.Settings()).FontSize(13.5).Bold().TextColor(p.text)
 	})
@@ -100,12 +110,13 @@ func settingRow(c *ui.Context, p palette, title, desc string, control func()) {
 	})
 }
 
-// card 按主题绘制设置分组卡片
+// card 按主题绘制设置分组并让玻璃主题沿用记录选中底色
 func (a *App) card(c *ui.Context, p palette) ui.Element {
 	e := ui.Column(c).Padding(14, 16).Gap(13).Radius(11)
-	e.Background(p.surface).Border(1, p.border)
 	if a.settings.Theme == themeGlass {
-		e.Radius(16).Background(p.surface.Alpha(0.82)).BorderColor(p.border.Alpha(0.65))
+		e.Background(p.accentSoft)
+	} else {
+		e.Background(p.surface).Border(1, p.border)
 	}
 	return e
 }
@@ -120,7 +131,7 @@ func (a *App) settingsAppearance(c *ui.Context, p palette) {
 			ui.Divider(c)
 			theme := a.settings.Theme
 			settingRow(c, p, locales.Theme(), locales.ThemeSystemHint(), func() {
-				ui.Segmented(c, &theme, locales.ClassicTheme(), "Liquid Glass").Label(locales.Theme())
+				a.themeSegmented(c, &theme, locales.ClassicTheme(), "Liquid Glass").Label(locales.Theme())
 			})
 			if theme != a.settings.Theme {
 				a.setSetting(func(s *types.Settings) { s.Theme = theme })
@@ -128,7 +139,7 @@ func (a *App) settingsAppearance(c *ui.Context, p palette) {
 			ui.Divider(c)
 			form := a.form
 			settingRow(c, p, locales.PanelForm(), "", func() {
-				ui.Segmented(c, &form, locales.BottomBar(), locales.FollowPointer()).Label(locales.PanelForm())
+				a.themeSegmented(c, &form, locales.BottomBar(), locales.FollowPointer()).Label(locales.PanelForm())
 			})
 			if form != a.form {
 				a.setForm(form)
@@ -145,7 +156,7 @@ func (a *App) settingsPaste(c *ui.Context, p palette) {
 		box.Children(func() {
 			plain := a.settings.PastePlain
 			settingRow(c, p, locales.PastePlainDefault(), locales.PastePlainHint(), func() {
-				ui.Switch(c, &plain).Label(locales.PastePlainDefault())
+				a.themeSwitch(c, &plain).Label(locales.PastePlainDefault())
 			})
 			if plain != a.settings.PastePlain {
 				a.setSetting(func(s *types.Settings) { s.PastePlain = plain })
@@ -153,7 +164,7 @@ func (a *App) settingsPaste(c *ui.Context, p palette) {
 			ui.Divider(c)
 			moveToFront := a.settings.MoveToFrontOnPaste
 			settingRow(c, p, locales.MoveToFrontOnPaste(), "", func() {
-				ui.Switch(c, &moveToFront).Label(locales.MoveToFrontOnPaste())
+				a.themeSwitch(c, &moveToFront).Label(locales.MoveToFrontOnPaste())
 			})
 			if moveToFront != a.settings.MoveToFrontOnPaste {
 				a.setSetting(func(s *types.Settings) { s.MoveToFrontOnPaste = moveToFront })
@@ -161,7 +172,7 @@ func (a *App) settingsPaste(c *ui.Context, p palette) {
 			ui.Divider(c)
 			reset := a.settings.ResetPanelAfterPaste
 			settingRow(c, p, locales.ResetPanelAfterPaste(), "", func() {
-				ui.Switch(c, &reset).Label(locales.ResetPanelAfterPaste())
+				a.themeSwitch(c, &reset).Label(locales.ResetPanelAfterPaste())
 			})
 			if reset != a.settings.ResetPanelAfterPaste {
 				a.setSetting(func(s *types.Settings) { s.ResetPanelAfterPaste = reset })
@@ -169,7 +180,7 @@ func (a *App) settingsPaste(c *ui.Context, p palette) {
 			ui.Divider(c)
 			link := a.settings.LinkPreview
 			settingRow(c, p, locales.LinkPreview(), locales.LinkPreviewHint(), func() {
-				ui.Switch(c, &link).Label(locales.LinkPreview())
+				a.themeSwitch(c, &link).Label(locales.LinkPreview())
 			})
 			if link != a.settings.LinkPreview {
 				a.setSetting(func(s *types.Settings) { s.LinkPreview = link })
@@ -186,7 +197,7 @@ func (a *App) settingsHistory(c *ui.Context, p palette) {
 		box.Children(func() {
 			maxRecords := float64(a.settings.MaxRecords)
 			settingRow(c, p, locales.MaxRecords(), locales.MaxRecordsHint(), func() {
-				ui.NumberInput(c, &maxRecords, 50, 5000, 50).Label(locales.MaxRecords())
+				a.themeNumberInput(c, &maxRecords, 50, 5000, 50).Label(locales.MaxRecords())
 			})
 			if int(maxRecords) != a.settings.MaxRecords {
 				a.setSetting(func(s *types.Settings) { s.MaxRecords = int(maxRecords) })
@@ -194,7 +205,7 @@ func (a *App) settingsHistory(c *ui.Context, p palette) {
 			ui.Divider(c)
 			limit := float64(a.settings.HistoryLimitMiB)
 			settingRow(c, p, locales.HistoryStorageLimit(), locales.HistoryStorageHint(), func() {
-				ui.NumberInput(c, &limit, 1, 65536, 64).Label(locales.HistoryStorageLimit())
+				a.themeNumberInput(c, &limit, 1, 65536, 64).Label(locales.HistoryStorageLimit())
 				ui.Text(c, "MiB").MarginStart(6).TextColor(p.muted)
 			})
 			if int(limit) != a.settings.HistoryLimitMiB {
@@ -212,7 +223,7 @@ func (a *App) settingsHistory(c *ui.Context, p palette) {
 					}
 				}
 				chosen := cur
-				ui.Select(c, &chosen, opts).Label(locales.Retention())
+				a.themeSelect(c, &chosen, opts).Label(locales.Retention())
 				if chosen != cur {
 					for i, o := range opts {
 						if o == chosen {
@@ -225,7 +236,7 @@ func (a *App) settingsHistory(c *ui.Context, p palette) {
 			ui.Divider(c)
 			login := a.settings.LaunchAtLogin
 			settingRow(c, p, locales.LaunchAtLogin(), "", func() {
-				ui.Switch(c, &login).Label(locales.LaunchAtLogin())
+				a.themeSwitch(c, &login).Label(locales.LaunchAtLogin())
 			})
 			if login != a.settings.LaunchAtLogin {
 				a.setSetting(func(s *types.Settings) { s.LaunchAtLogin = login })
@@ -233,7 +244,7 @@ func (a *App) settingsHistory(c *ui.Context, p palette) {
 			ui.Divider(c)
 			sound := a.settings.CopySound
 			settingRow(c, p, locales.CopySound(), "", func() {
-				ui.Switch(c, &sound).Label(locales.CopySound())
+				a.themeSwitch(c, &sound).Label(locales.CopySound())
 			})
 			if sound != a.settings.CopySound {
 				a.setSetting(func(s *types.Settings) { s.CopySound = sound })
@@ -241,7 +252,7 @@ func (a *App) settingsHistory(c *ui.Context, p palette) {
 			ui.Divider(c)
 			paused := a.settings.Paused
 			settingRow(c, p, locales.PauseRecording(), "", func() {
-				ui.Switch(c, &paused).Label(locales.PauseRecording())
+				a.themeSwitch(c, &paused).Label(locales.PauseRecording())
 			})
 			if paused != a.settings.Paused {
 				a.setSetting(func(s *types.Settings) { s.Paused = paused })
@@ -260,14 +271,14 @@ func (a *App) settingsData(c *ui.Context, p palette) {
 		box := a.card(c, p)
 		box.Children(func() {
 			settingRow(c, p, locales.RecordLocation(), a.dataDir(), func() {
-				ui.Button(c, locales.ShowInFolder()).OnClick(func() {
+				a.themeButton(c, locales.ShowInFolder()).OnClick(func() {
 					mygo.Shell.ShowItemInFolder(a.dataDir())
 				})
 			})
 			ui.Divider(c)
 			count := len(a.records)
 			settingRow(c, p, locales.ClearHistory(), locales.RecordsPresent(count), func() {
-				if ui.Button(c, locales.ClearAction()).Clicked() {
+				if a.themeButton(c, locales.ClearAction()).Clicked() {
 					res, err := mygo.Dialog.Message(mygo.MessageOptions{
 						Type:          mygo.MessageWarning,
 						Title:         locales.ClearHistoryTitle(),
@@ -298,7 +309,7 @@ func (a *App) settingsData(c *ui.Context, p palette) {
 				settingRow(c, p, locales.AccessPermission(), desc, func() {
 					if trusted {
 						ui.Text(c, locales.Enabled()).FontSize(11.5).TextColor(p.muted)
-					} else if ui.PrimaryButton(c, locales.EnableAccess()).Clicked() {
+					} else if a.themePrimaryButton(c, locales.EnableAccess()).Clicked() {
 						native.PromptAccessibility()
 					}
 				})
