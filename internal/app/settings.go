@@ -18,7 +18,6 @@ func (a *App) settingsView(c *ui.Context) {
 	a.applyTheme(c)
 	p := a.palette(c)
 	root := c.Root().Background(p.bg)
-	a.themeBackground(c, root, p)
 	ui.Column(c).Fill().Children(func() {
 		a.settingsHeader(c, p)
 		hairline(c, p)
@@ -54,6 +53,7 @@ func (a *App) settingsView(c *ui.Context) {
 			a.settingsContent(c, p, title)
 		})
 	})
+	a.themeBackground(c, root, p)
 }
 
 // settingsHeader 按当前主题绘制可拖动标题栏并避让系统窗口按钮
