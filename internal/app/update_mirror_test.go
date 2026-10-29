@@ -1,13 +1,16 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
 	"gopaste/internal/locales"
@@ -99,6 +102,55 @@ func TestUpdateMirrorRequests(t *testing.T) {
 	}
 }
 
+// TestUpdateMirrorSource 验证新版更新源的清单、完整包、增量包及 HTTPS 与状态码校验
+func TestUpdateMirrorSource(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	prefix := "https://mirror.example/proxy"
+	want := ""
+	calls := 0
+	transport := &updateMirrorTransport{base: mirrorRoundTripper(func(req *http.Request) (*http.Response, error) {
+		calls++
+		if req.URL.String() != prefix+"/"+want || req.Header.Get("User-Agent") != "mygo-updater" || req.Context() != ctx {
+			t.Fatalf("更新源的地址、请求头或上下文不正确：%s", req.URL)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("update"))}, nil
+	})}
+	transport.prefix.Store(&prefix)
+	var source mygo.UpdateSource = transport
+	for i, address := range []string{
+		"https://github.com/viewhang/go_paste/releases/latest/download/update-" + runtime.GOOS + "-" + runtime.GOARCH + ".json",
+		"https://github.com/viewhang/go_paste/releases/download/v0.1.4/gopaste.tar.gz",
+		"https://github.com/viewhang/go_paste/releases/download/v0.1.4/gopaste.delta",
+	} {
+		want = address
+		var body io.ReadCloser
+		var err error
+		if i == 0 {
+			body, err = source.Manifest(ctx, false)
+		} else {
+			body, err = source.Open(ctx, address)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := io.ReadAll(body)
+		body.Close()
+		if err != nil || string(data) != "update" {
+			t.Fatalf("更新源读取失败：%q、%v", data, err)
+		}
+	}
+	if _, err := source.Open(ctx, "http://example.com/update.tar.gz"); err == nil || calls != 3 {
+		t.Fatal("非 HTTPS 更新请求未被阻止")
+	}
+	transport.base = mirrorRoundTripper(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusServiceUnavailable, Status: "503 Service Unavailable", Body: http.NoBody}, nil
+	})
+	if _, err := source.Open(ctx, want); err == nil || !strings.Contains(err.Error(), "503 Service Unavailable") {
+		t.Fatalf("HTTP 更新错误未返回：%v", err)
+	}
+}
+
 // TestUpdateMirrorScope 验证链接预览和其他仓库保持直连且镜像失败时不改走原站
 func TestUpdateMirrorScope(t *testing.T) {
 	for _, tc := range []struct{ address, agent, prefix string }{
@@ -140,6 +192,7 @@ func TestUpdateMirrorScope(t *testing.T) {
 
 // TestUpdateMirrorSettings 验证中英文镜像输入、校验、持久化与清空后恢复直连
 func TestUpdateMirrorSettings(t *testing.T) {
+	t.Cleanup(func() { mygo.Updater.SetSource(nil) })
 	for _, tag := range []string{"zh-Hans", "en"} {
 		t.Run(tag, func(t *testing.T) {
 			t.Setenv("MYGO_LOCALE", tag)

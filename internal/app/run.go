@@ -6,7 +6,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
-	"net/http"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/updater"
@@ -29,7 +28,6 @@ func Run() {
 	if !mygo.App.RequestSingleInstanceLock() {
 		return
 	}
-	http.DefaultClient.Transport = a.updateTransport
 	mygo.App.WhenReady(a.ready)
 	mygo.Use(updatenative.New(updater.Options{
 		Icon: assets.AppIcon,

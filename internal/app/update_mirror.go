@@ -1,20 +1,56 @@
 package app
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync/atomic"
+
+	"github.com/egoist/mygo"
 
 	"gopaste/internal/locales"
 	"gopaste/internal/types"
 )
 
-// updateMirrorTransport 将本项目的更新请求转发到用户指定的 GitHub 镜像
+// updateMirrorTransport 通过系统代理读取更新源并按配置转发到 GitHub 镜像
 type updateMirrorTransport struct {
 	base   http.RoundTripper
 	prefix atomic.Pointer[string]
+}
+
+// Manifest 读取当前平台的稳定版更新清单
+func (t *updateMirrorTransport) Manifest(ctx context.Context, _ bool) (io.ReadCloser, error) {
+	return t.Open(ctx, "https://github.com/viewhang/go_paste/releases/latest/download/update-"+runtime.GOOS+"-"+runtime.GOARCH+".json")
+}
+
+// Open 下载更新文件并保留请求取消、镜像重定向与 HTTP 错误
+func (t *updateMirrorTransport) Open(ctx context.Context, address string) (io.ReadCloser, error) {
+	u, err := url.Parse(address)
+	if err != nil {
+		return nil, err
+	}
+	if u.Scheme != "https" {
+		return nil, fmt.Errorf("refusing to download %s: updates need HTTPS", address)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "mygo-updater")
+	resp, err := (&http.Client{Transport: t}).Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("GET %s: %s", address, resp.Status)
+	}
+	return resp.Body, nil
 }
 
 // RoundTrip 为更新清单、完整包和增量包拼接镜像前缀并保留重定向语义
@@ -74,7 +110,17 @@ func (a *App) saveUpdateMirror() {
 	}
 	a.setSetting(func(s *types.Settings) { s.UpdateMirror = prefix })
 	if a.settings.UpdateMirror == prefix {
-		a.updateTransport.prefix.Store(&prefix)
+		a.setUpdateMirror(prefix)
 		a.updateMirrorInput, a.updateMirrorError = prefix, ""
+	}
+}
+
+// setUpdateMirror 应用镜像前缀并在清空时恢复框架默认更新源
+func (a *App) setUpdateMirror(prefix string) {
+	a.updateTransport.prefix.Store(&prefix)
+	if prefix == "" {
+		mygo.Updater.SetSource(nil)
+	} else {
+		mygo.Updater.SetSource(a.updateTransport)
 	}
 }

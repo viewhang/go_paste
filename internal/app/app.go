@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"image"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"slices"
 	"time"
 
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/netproxy"
 	"github.com/egoist/mygo/ui"
 
 	"gopaste/internal/clip"
@@ -134,7 +134,7 @@ func NewApp() *App {
 		imageScale:      1,
 		previewSlots:    make(chan struct{}, 2),
 		settingsPage:    "general",
-		updateTransport: &updateMirrorTransport{base: http.DefaultTransport},
+		updateTransport: &updateMirrorTransport{base: netproxy.Transport()},
 	}
 }
 
@@ -157,8 +157,7 @@ func (a *App) ready() {
 	}
 	a.st = st
 	a.reload()
-	prefix := a.settings.UpdateMirror
-	a.updateTransport.prefix.Store(&prefix)
+	a.setUpdateMirror(a.settings.UpdateMirror)
 	if a.settings.Form == formPanel {
 		a.form = formPanel
 	}
