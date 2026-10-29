@@ -86,23 +86,30 @@ func previewMeta(r *types.Record) string {
 	return ""
 }
 
-// previewBody 显示记录对应的文本、静态图片、GIF、链接、颜色或文件预览
+// previewBody 显示记录对应的文本、静态图片、动图、链接、颜色或文件预览
 func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 	body := ui.Column(c).Grow(1).Gap(8)
 	w, h := c.Size()
 	if a.form == formBar {
 		h = barPreview
 	}
-	gifPath := ""
-	if r.Kind == types.KindImage && r.Animated && r.ImageFormat == "gif" {
-		gifPath = a.st.BlobPath(r.Image)
-	} else if r.Kind == types.KindFile && len(r.Files) == 1 && strings.EqualFold(filepath.Ext(r.Files[0].Path), ".gif") {
-		gifPath = r.Files[0].Path
+	imagePath := ""
+	if r.Kind == types.KindImage && r.Animated && (r.ImageFormat == "gif" || r.ImageFormat == "webp") {
+		imagePath = a.st.BlobPath(r.Image)
+	} else if r.Kind == types.KindFile && len(r.Files) == 1 {
+		ext := strings.ToLower(filepath.Ext(r.Files[0].Path))
+		if ext == ".gif" || ext == ".webp" {
+			imagePath = r.Files[0].Path
+		}
 	}
-	if gifPath != "" {
+	if imagePath != "" {
 		body.Padding(12).Children(func() {
-			if player := a.previewGIF(gifPath); player != nil {
+			player, bitmap := a.previewImageFile(imagePath, max(w-24, h-100))
+			if player != nil {
 				ui.Video(c, player).Fill().Fit(ui.Contain).Radius(8).Label(recordTitle(r)).
+					ContextMenu(func(m *ui.Menu) { a.cardMenu(c, m, r) })
+			} else if bitmap != nil {
+				ui.Image(c, bitmap).Fill().Fit(ui.Contain).Radius(8).Label(recordTitle(r)).
 					ContextMenu(func(m *ui.Menu) { a.cardMenu(c, m, r) })
 			} else {
 				ui.Text(c, locales.ImageMissing()).FontSize(12).TextColor(p.faint).Center()
@@ -110,7 +117,7 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 		})
 		return
 	}
-	if a.previewVideoPath != "" {
+	if a.previewMediaPath != "" {
 		a.releasePreview()
 	}
 	switch r.Kind {

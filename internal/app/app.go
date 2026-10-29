@@ -88,10 +88,10 @@ type App struct {
 
 	images       bitmapCache
 	previewImage cachedBitmap
-	// previewVideo 保存当前 GIF 预览播放器
+	// previewVideo 保存当前动图预览播放器
 	previewVideo *ui.VideoPlayer
-	// previewVideoPath 标识当前播放器对应的原始 GIF 文件
-	previewVideoPath string
+	// previewMediaPath 标识当前文件预览对应的原始图片
+	previewMediaPath string
 	imageScale       float64
 	previewSlots     chan struct{}
 	// dragImage 复用当前拖拽的紧凑预览像素缓冲

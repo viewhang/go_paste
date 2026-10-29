@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"container/list"
+	"image"
 	"math"
 	"os"
 
@@ -151,35 +153,54 @@ func (a *App) fileIcon(path string) *ui.Bitmap {
 	return a.images.put(key, b)
 }
 
-// previewGIF 复用当前 GIF 的循环播放器并在切换文件时释放旧预览
-func (a *App) previewGIF(path string) *ui.VideoPlayer {
-	if a.previewVideoPath != path {
+// previewImageFile 按文件实际格式复用 GIF 或 WebP 播放器或降采样静态预览
+func (a *App) previewImageFile(path string, size float32) (*ui.VideoPlayer, *ui.Bitmap) {
+	key := bitmapKey{name: path, side: bitmapSide(a.imagePixels(size), previewMaxSide)}
+	if a.previewMediaPath != path || a.previewImage.image != nil && a.previewImage.key.side < key.side {
 		a.releasePreview()
-		a.previewVideoPath = path
+		a.previewMediaPath = path
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return nil
+			return nil, nil
 		}
-		decoder, err := ui.NewGIFDecoder(data)
+		_, format, err := image.DecodeConfig(bytes.NewReader(data))
 		if err != nil {
-			return nil
+			return nil, nil
+		}
+		var decoder ui.VideoDecoder
+		switch {
+		case format == "gif":
+			decoder, err = ui.NewGIFDecoder(data)
+		case format == "webp" && len(data) >= 30 && string(data[12:16]) == "VP8X" && data[20]&2 != 0:
+			decoder, err = newWebPDecoder(data)
+		default:
+			img, err := native.Thumbnail(path, key.side)
+			if err != nil {
+				return nil, nil
+			}
+			bitmap := ui.NewBitmap(img)
+			a.previewImage = cachedBitmap{key: key, image: bitmap, bytes: bitmapBytes(bitmap)}
+			return nil, bitmap
+		}
+		if err != nil {
+			return nil, nil
 		}
 		player, err := ui.NewVideoPlayer(decoder)
 		if err != nil {
-			return nil
+			return nil, nil
 		}
 		a.previewVideo = player.SetLoop(true)
 	}
-	return a.previewVideo
+	return a.previewVideo, a.previewImage.image
 }
 
-// releasePreview 释放当前静态图片与 GIF 播放器
+// releasePreview 释放当前静态图片与动图播放器
 func (a *App) releasePreview() {
 	a.previewImage = cachedBitmap{}
 	if a.previewVideo != nil {
 		a.previewVideo.Close()
 	}
-	a.previewVideo, a.previewVideoPath = nil, ""
+	a.previewVideo, a.previewMediaPath = nil, ""
 }
 
 // releaseImages 释放应用持有的列表缓存与当前预览

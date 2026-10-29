@@ -8,6 +8,7 @@ import (
 	"image/gif"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -112,8 +113,8 @@ func TestImageResizeReuse(t *testing.T) {
 	}
 }
 
-// TestGIFPreview 验证图片与单文件 GIF 的播放、播放器复用及预览资源释放
-func TestGIFPreview(t *testing.T) {
+// TestAnimatedPreview 验证 GIF 与 WebP 的播放、播放器复用及预览资源释放
+func TestAnimatedPreview(t *testing.T) {
 	red := color.RGBA{R: 255, A: 255}
 	blue := color.RGBA{B: 255, A: 255}
 	palette := color.Palette{red, blue}
@@ -126,27 +127,50 @@ func TestGIFPreview(t *testing.T) {
 	if err := gif.EncodeAll(&data, &gif.GIF{Image: []*image.Paletted{first, second}, Delay: []int{10, 10}}); err != nil {
 		t.Fatal(err)
 	}
+	webp, err := os.ReadFile("testdata/preview.webp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		format string
+		data   []byte
+	}{{"gif", data.Bytes()}, {"webp", webp}} {
+		t.Run(tc.format, func(t *testing.T) { testAnimatedPreview(t, tc.data, tc.format) })
+	}
+}
+
+// testAnimatedPreview 验证图片记录、原始文件及扩展名不符文件的动画预览
+func testAnimatedPreview(t *testing.T, data []byte, format string) {
 	st, err := store.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { st.Close() })
-	name, err := st.SaveBlob(data.Bytes(), "gif")
+	name, err := st.SaveBlob(data, format)
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(t.TempDir(), "preview.GIF")
-	if err := os.WriteFile(path, data.Bytes(), 0o644); err != nil {
+	path := filepath.Join(t.TempDir(), "preview."+strings.ToUpper(format))
+	if err := os.WriteFile(path, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	still, err := st.SaveBlob(encodePNG(image.NewRGBA(first.Rect)), "png")
+	still, err := st.SaveBlob(encodePNG(image.NewRGBA(image.Rect(0, 0, 8, 8))), "png")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, record := range []*types.Record{
-		{Kind: types.KindImage, Image: name, ImageFormat: "gif", Animated: true},
+	records := []*types.Record{
+		{Kind: types.KindImage, Image: name, ImageFormat: format, Animated: true},
 		{Kind: types.KindFile, Files: []types.FileRef{{Path: path}}},
-	} {
+	}
+	if format == "webp" {
+		path := filepath.Join(t.TempDir(), "actual-webp.gif")
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		records = append(records, &types.Record{Kind: types.KindFile, Files: []types.FileRef{{Path: path}}})
+	}
+	red, blue := color.RGBA{R: 255, A: 255}, color.RGBA{B: 255, A: 255}
+	for _, record := range records {
 		t.Run(string(record.Kind), func(t *testing.T) {
 			a := NewApp()
 			a.st, a.preview = st, true
@@ -155,35 +179,60 @@ func TestGIFPreview(t *testing.T) {
 			tt := ui.NewTester(func(c *ui.Context) { a.previewBody(c, pal(c), current) }, 200, 180)
 			player := a.previewVideo
 			if player == nil || !player.Loop() || tt.Image().RGBAAt(100, 90) != red {
-				t.Fatal("GIF 预览未显示首帧或启用循环播放")
+				t.Fatal("动图预览未显示首帧或启用循环播放")
 			}
 			tt.Advance(110 * time.Millisecond)
 			deadline := time.Now().Add(time.Second)
 			for tt.Image().RGBAAt(100, 90) != blue {
 				if time.Now().After(deadline) {
-					t.Fatal("GIF 预览未播放下一帧")
+					t.Fatal("动图预览未播放下一帧")
 				}
 				time.Sleep(time.Millisecond)
 				tt.Frame()
 			}
 			if a.previewVideo != player {
-				t.Fatal("GIF 重绘时重复创建了播放器")
+				t.Fatal("动图重绘时重复创建了播放器")
 			}
 			current = &types.Record{Kind: types.KindImage, Image: still}
 			tt.Frame()
 			if a.previewVideo != nil || player.Playing() {
-				t.Fatal("切换静态图片后 GIF 播放器未释放")
+				t.Fatal("切换静态图片后动图播放器未释放")
 			}
 			for _, close := range []func(){a.closePreview, a.hide} {
 				current = record
 				tt.Frame()
 				player = a.previewVideo
 				close()
-				if a.previewVideo != nil || a.previewVideoPath != "" || player.Playing() {
-					t.Fatal("关闭或隐藏预览后 GIF 播放器未释放")
+				if a.previewVideo != nil || a.previewMediaPath != "" || player.Playing() {
+					t.Fatal("关闭或隐藏预览后动图播放器未释放")
 				}
 			}
 		})
+	}
+}
+
+// TestGIFFileActualFormat 验证扩展名为 GIF 的静态图片按实际格式预览并复用位图
+func TestGIFFileActualFormat(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 8, 8))
+	want := color.RGBA{R: 255, A: 255}
+	for i := 0; i < len(img.Pix); i += 4 {
+		copy(img.Pix[i:i+4], []byte{want.R, want.G, want.B, want.A})
+	}
+	path := filepath.Join(t.TempDir(), "actual-png.gif")
+	if err := os.WriteFile(path, encodePNG(img), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a := NewApp()
+	t.Cleanup(a.releaseImages)
+	record := &types.Record{Kind: types.KindFile, Files: []types.FileRef{{Path: path}}}
+	tt := ui.NewTester(func(c *ui.Context) { a.previewBody(c, pal(c), record) }, 200, 180)
+	bitmap := a.previewImage.image
+	if bitmap == nil || a.previewVideo != nil || tt.Image().RGBAAt(100, 90) != want {
+		t.Fatal("扩展名为 GIF 的 PNG 未按静态图片显示")
+	}
+	tt.Frame()
+	if a.previewImage.image != bitmap {
+		t.Fatal("静态图片重绘时重复解码")
 	}
 }
 
