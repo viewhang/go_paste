@@ -195,7 +195,7 @@ func (a *App) ready() {
 		a.hide()
 	})
 	a.win.OnResize(a.resize)
-	a.place()
+	a.place(true)
 
 	a.setUpTray()
 
@@ -359,13 +359,22 @@ func (a *App) fullRecord(r *types.Record) *types.Record {
 
 // ---- window geometry ----
 
-// place 按当前形态和已保存尺寸将窗口放到鼠标所在屏幕
-func (a *App) place() {
+// place 按需跟随鼠标定位或在当前屏幕保留位置调整预览尺寸
+func (a *App) place(reposition bool) {
 	if a.win == nil {
 		return
 	}
-	pt := mygo.Screen.CursorScreenPoint()
-	d := mygo.Screen.DisplayNearestPoint(pt)
+	var pt mygo.Point
+	var d mygo.Display
+	var current *mygo.Rectangle
+	if reposition {
+		pt = mygo.Screen.CursorScreenPoint()
+		d = mygo.Screen.DisplayNearestPoint(pt)
+	} else {
+		bounds := a.win.Bounds()
+		current = &bounds
+		d = mygo.Screen.DisplayMatching(bounds)
+	}
 	area := d.WorkArea
 	if area.Width <= 0 {
 		area = mygo.Screen.PrimaryDisplay().WorkArea
@@ -375,7 +384,7 @@ func (a *App) place() {
 	}
 	a.placing = true
 	defer func() { a.placing = false }()
-	bounds := a.windowBounds(pt, area)
+	bounds := a.windowBounds(pt, area, current)
 	if a.form == formBar {
 		minHeight := barHeight
 		if a.preview {
@@ -390,8 +399,11 @@ func (a *App) place() {
 	a.win.SetBounds(bounds)
 }
 
-// windowBounds 计算工作区内的窗口位置与尺寸并让浮动面板避开鼠标
-func (a *App) windowBounds(pt mygo.Point, area mygo.Rectangle) mygo.Rectangle {
+// windowBounds 保留浮动面板的当前边界或计算首次定位与贴底长条尺寸
+func (a *App) windowBounds(pt mygo.Point, area mygo.Rectangle, current *mygo.Rectangle) mygo.Rectangle {
+	if a.form == formPanel && current != nil {
+		return *current
+	}
 	if a.form == formBar {
 		h := max(a.settings.BarHeight, barHeight)
 		if a.preview {
@@ -488,7 +500,7 @@ func (a *App) show() {
 	a.detail = nil
 	a.releasePreview()
 	a.sel = 0
-	a.place()
+	a.place(!a.win.IsVisible())
 	a.win.Show()
 	a.win.Focus()
 	a.search.Focus()
@@ -522,7 +534,7 @@ func (a *App) openPanel() {
 	}
 	if a.win.IsVisible() {
 		a.reload()
-		a.place()
+		a.place(false)
 		a.win.Focus()
 		a.search.Focus()
 		return
@@ -541,7 +553,7 @@ func (a *App) setForm(form int) {
 	a.releasePreview()
 	a.setSetting(func(s *types.Settings) { s.Form = form })
 	if a.win != nil {
-		a.place()
+		a.place(true)
 		a.win.Invalidate()
 	}
 	a.refreshTray()

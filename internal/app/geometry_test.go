@@ -31,7 +31,7 @@ func TestPointerPanelAvoidsCursor(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			a := &App{form: formPanel, settings: tc.settings}
-			bounds := a.windowBounds(tc.point, tc.area)
+			bounds := a.windowBounds(tc.point, tc.area, nil)
 			if tc.point.X > bounds.X-18 && tc.point.X < bounds.X+bounds.Width+18 &&
 				tc.point.Y > bounds.Y-18 && tc.point.Y < bounds.Y+bounds.Height+18 {
 				t.Fatalf("面板未避开鼠标：鼠标 %+v，窗口 %+v", tc.point, bounds)
@@ -69,11 +69,40 @@ func TestWindowBounds(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			a := &App{form: tc.form, preview: tc.preview, settings: tc.settings}
-			if got := a.windowBounds(pt, area); got != tc.want {
+			if got := a.windowBounds(pt, area, nil); got != tc.want {
 				t.Fatalf("窗口位置与尺寸：得到 %+v，期望 %+v", got, tc.want)
 			}
 			if !reflect.DeepEqual(a.settings, tc.settings) {
 				t.Fatal("屏幕限制不应覆盖已保存的尺寸")
+			}
+		})
+	}
+}
+
+// TestPreviewKeepsWindowBounds 验证移动鼠标后预览保留浮动面板边界且长条仍在原屏幕展开与收起
+func TestPreviewKeepsWindowBounds(t *testing.T) {
+	area := mygo.Rectangle{X: -1440, Y: 24, Width: 1440, Height: 876}
+	for _, tc := range []struct {
+		name    string
+		form    int
+		current mygo.Rectangle
+		expand  mygo.Rectangle
+	}{
+		{"浮动面板", formPanel, mygo.Rectangle{X: -900, Y: 180, Width: 400, Height: 500}, mygo.Rectangle{X: -900, Y: 180, Width: 400, Height: 500}},
+		{"贴底长条", formBar, mygo.Rectangle{X: -1440, Y: 662, Width: 1440, Height: 238}, mygo.Rectangle{X: -1440, Y: 356, Width: 1440, Height: 544}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := &App{form: tc.form}
+			for _, pt := range []mygo.Point{{X: -1200, Y: 50}, {X: -40, Y: 850}, {X: 1600, Y: 600}} {
+				a.preview = true
+				expanded := a.windowBounds(pt, area, &tc.current)
+				if expanded != tc.expand {
+					t.Fatalf("移动鼠标后打开预览改变了位置：得到 %+v，期望 %+v", expanded, tc.expand)
+				}
+				a.preview = false
+				if got := a.windowBounds(pt, area, &expanded); got != tc.current {
+					t.Fatalf("关闭预览未恢复原边界：得到 %+v，期望 %+v", got, tc.current)
+				}
 			}
 		})
 	}

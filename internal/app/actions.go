@@ -244,18 +244,18 @@ func (a *App) openPreview() {
 	}
 	a.detail = rec
 	a.preview = true
-	a.place()
+	a.place(false)
 	if a.win != nil {
 		a.win.Invalidate()
 	}
 }
 
-// closePreview 关闭预览并释放当前图片与 GIF 播放器
+// closePreview 关闭预览并释放当前图片与动图播放器
 func (a *App) closePreview() {
 	a.preview = false
 	a.detail = nil
 	a.releasePreview()
-	a.place()
+	a.place(false)
 	if a.win != nil {
 		a.win.Invalidate()
 	}
