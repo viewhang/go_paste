@@ -1,7 +1,7 @@
 {
   "name": "GoPaste",
   "identifier": "dev.gopaste.app",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "copyright": "Copyright © 2026 GoPaste",
   "icon": "internal/assets/icon.png",
   "out": "build",
