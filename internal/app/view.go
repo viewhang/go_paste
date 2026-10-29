@@ -15,7 +15,7 @@ func (a *App) view(c *ui.Context) {
 		a.imageScale = mygo.Screen.DisplayMatching(a.win.Bounds()).ScaleFactor
 	}
 	if !a.preview {
-		a.previewImage = cachedBitmap{}
+		a.releasePreview()
 	}
 	a.applyTheme(c)
 	p := a.palette(c)

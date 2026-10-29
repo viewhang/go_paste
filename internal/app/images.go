@@ -3,6 +3,7 @@ package app
 import (
 	"container/list"
 	"math"
+	"os"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -15,7 +16,7 @@ const (
 	thumbnailBudget = 12 << 20
 	// thumbnailMaxSide 限制列表单张缩略图的最长像素边
 	thumbnailMaxSide = 512
-	// previewMaxSide 限制当前预览及其缩小层级合计不超过 8 MiB
+	// previewMaxSide 限制静态预览及其缩小层级合计不超过 8 MiB
 	previewMaxSide = 1200
 )
 
@@ -150,8 +151,39 @@ func (a *App) fileIcon(path string) *ui.Bitmap {
 	return a.images.put(key, b)
 }
 
+// previewGIF 复用当前 GIF 的循环播放器并在切换文件时释放旧预览
+func (a *App) previewGIF(path string) *ui.VideoPlayer {
+	if a.previewVideoPath != path {
+		a.releasePreview()
+		a.previewVideoPath = path
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+		decoder, err := ui.NewGIFDecoder(data)
+		if err != nil {
+			return nil
+		}
+		player, err := ui.NewVideoPlayer(decoder)
+		if err != nil {
+			return nil
+		}
+		a.previewVideo = player.SetLoop(true)
+	}
+	return a.previewVideo
+}
+
+// releasePreview 释放当前静态图片与 GIF 播放器
+func (a *App) releasePreview() {
+	a.previewImage = cachedBitmap{}
+	if a.previewVideo != nil {
+		a.previewVideo.Close()
+	}
+	a.previewVideo, a.previewVideoPath = nil, ""
+}
+
 // releaseImages 释放应用持有的列表缓存与当前预览
 func (a *App) releaseImages() {
-	a.previewImage = cachedBitmap{}
+	a.releasePreview()
 	a.images.trim(0)
 }

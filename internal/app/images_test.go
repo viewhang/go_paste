@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/gif"
 	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
@@ -106,6 +109,81 @@ func TestImageResizeReuse(t *testing.T) {
 	preview := a.previewBitmap(name, 300)
 	if preview == nil || a.previewBitmap(name, 280) != preview || a.previewBitmap(name, 180) != preview {
 		t.Fatal("预览在同一档位或缩小时重复解码")
+	}
+}
+
+// TestGIFPreview 验证图片与单文件 GIF 的播放、播放器复用及预览资源释放
+func TestGIFPreview(t *testing.T) {
+	red := color.RGBA{R: 255, A: 255}
+	blue := color.RGBA{B: 255, A: 255}
+	palette := color.Palette{red, blue}
+	first := image.NewPaletted(image.Rect(0, 0, 8, 8), palette)
+	second := image.NewPaletted(first.Rect, palette)
+	for i := range second.Pix {
+		second.Pix[i] = 1
+	}
+	var data bytes.Buffer
+	if err := gif.EncodeAll(&data, &gif.GIF{Image: []*image.Paletted{first, second}, Delay: []int{10, 10}}); err != nil {
+		t.Fatal(err)
+	}
+	st, err := store.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { st.Close() })
+	name, err := st.SaveBlob(data.Bytes(), "gif")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "preview.GIF")
+	if err := os.WriteFile(path, data.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	still, err := st.SaveBlob(encodePNG(image.NewRGBA(first.Rect)), "png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, record := range []*types.Record{
+		{Kind: types.KindImage, Image: name, ImageFormat: "gif", Animated: true},
+		{Kind: types.KindFile, Files: []types.FileRef{{Path: path}}},
+	} {
+		t.Run(string(record.Kind), func(t *testing.T) {
+			a := NewApp()
+			a.st, a.preview = st, true
+			t.Cleanup(a.releaseImages)
+			current := record
+			tt := ui.NewTester(func(c *ui.Context) { a.previewBody(c, pal(c), current) }, 200, 180)
+			player := a.previewVideo
+			if player == nil || !player.Loop() || tt.Image().RGBAAt(100, 90) != red {
+				t.Fatal("GIF 预览未显示首帧或启用循环播放")
+			}
+			tt.Advance(110 * time.Millisecond)
+			deadline := time.Now().Add(time.Second)
+			for tt.Image().RGBAAt(100, 90) != blue {
+				if time.Now().After(deadline) {
+					t.Fatal("GIF 预览未播放下一帧")
+				}
+				time.Sleep(time.Millisecond)
+				tt.Frame()
+			}
+			if a.previewVideo != player {
+				t.Fatal("GIF 重绘时重复创建了播放器")
+			}
+			current = &types.Record{Kind: types.KindImage, Image: still}
+			tt.Frame()
+			if a.previewVideo != nil || player.Playing() {
+				t.Fatal("切换静态图片后 GIF 播放器未释放")
+			}
+			for _, close := range []func(){a.closePreview, a.hide} {
+				current = record
+				tt.Frame()
+				player = a.previewVideo
+				close()
+				if a.previewVideo != nil || a.previewVideoPath != "" || player.Playing() {
+					t.Fatal("关闭或隐藏预览后 GIF 播放器未释放")
+				}
+			}
+		})
 	}
 }
 

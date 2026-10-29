@@ -250,11 +250,11 @@ func (a *App) openPreview() {
 	}
 }
 
-// closePreview 关闭预览并释放当前预览图片
+// closePreview 关闭预览并释放当前图片与 GIF 播放器
 func (a *App) closePreview() {
 	a.preview = false
 	a.detail = nil
-	a.previewImage = cachedBitmap{}
+	a.releasePreview()
 	a.place()
 	if a.win != nil {
 		a.win.Invalidate()

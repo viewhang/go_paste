@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"unicode/utf8"
 
@@ -12,9 +13,7 @@ import (
 	"gopaste/internal/types"
 )
 
-// previewPane shows the chosen record in full: the whole text, the big
-// picture, the page behind a link, a color in three notations, the files
-// of a file record.
+// previewPane 显示当前记录的完整内容与预览操作
 func (a *App) previewPane(c *ui.Context, p palette) {
 	rec := a.detail
 	if rec == nil {
@@ -27,6 +26,7 @@ func (a *App) previewPane(c *ui.Context, p palette) {
 		box.Grow(1)
 	}
 	if rec == nil {
+		a.releasePreview()
 		box.Children(func() { a.emptyState(c, p) })
 		return
 	}
@@ -86,12 +86,32 @@ func previewMeta(r *types.Record) string {
 	return ""
 }
 
-// previewBody 显示记录对应的文本、图片、链接、颜色或文件预览
+// previewBody 显示记录对应的文本、静态图片、GIF、链接、颜色或文件预览
 func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 	body := ui.Column(c).Grow(1).Gap(8)
 	w, h := c.Size()
 	if a.form == formBar {
 		h = barPreview
+	}
+	gifPath := ""
+	if r.Kind == types.KindImage && r.Animated && r.ImageFormat == "gif" {
+		gifPath = a.st.BlobPath(r.Image)
+	} else if r.Kind == types.KindFile && len(r.Files) == 1 && strings.EqualFold(filepath.Ext(r.Files[0].Path), ".gif") {
+		gifPath = r.Files[0].Path
+	}
+	if gifPath != "" {
+		body.Padding(12).Children(func() {
+			if player := a.previewGIF(gifPath); player != nil {
+				ui.Video(c, player).Fill().Fit(ui.Contain).Radius(8).Label(recordTitle(r)).
+					ContextMenu(func(m *ui.Menu) { a.cardMenu(c, m, r) })
+			} else {
+				ui.Text(c, locales.ImageMissing()).FontSize(12).TextColor(p.faint).Center()
+			}
+		})
+		return
+	}
+	if a.previewVideoPath != "" {
+		a.releasePreview()
 	}
 	switch r.Kind {
 	case types.KindImage:

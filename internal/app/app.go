@@ -88,8 +88,12 @@ type App struct {
 
 	images       bitmapCache
 	previewImage cachedBitmap
-	imageScale   float64
-	previewSlots chan struct{}
+	// previewVideo 保存当前 GIF 预览播放器
+	previewVideo *ui.VideoPlayer
+	// previewVideoPath 标识当前播放器对应的原始 GIF 文件
+	previewVideoPath string
+	imageScale       float64
+	previewSlots     chan struct{}
 	// dragImage 复用当前拖拽的紧凑预览像素缓冲
 	dragImage *image.RGBA
 
@@ -218,7 +222,9 @@ func (a *App) ready() {
 	}
 }
 
+// shutdown 释放预览、托盘与记录存储
 func (a *App) shutdown() {
+	a.releaseImages()
 	if a.tray != nil {
 		a.tray.Destroy()
 	}
@@ -256,7 +262,7 @@ func (a *App) reload() {
 		} else {
 			a.detail = nil
 			a.preview = false
-			a.previewImage = cachedBitmap{}
+			a.releasePreview()
 		}
 	}
 }
@@ -480,7 +486,7 @@ func (a *App) show() {
 	a.reload()
 	a.preview = false
 	a.detail = nil
-	a.previewImage = cachedBitmap{}
+	a.releasePreview()
 	a.sel = 0
 	a.place()
 	a.win.Show()
@@ -524,6 +530,7 @@ func (a *App) openPanel() {
 	a.show()
 }
 
+// setForm 保存面板形态并重置预览与窗口布局
 func (a *App) setForm(form int) {
 	if form == a.form {
 		return
@@ -531,7 +538,7 @@ func (a *App) setForm(form int) {
 	a.form = form
 	a.preview = false
 	a.detail = nil
-	a.previewImage = cachedBitmap{}
+	a.releasePreview()
 	a.setSetting(func(s *types.Settings) { s.Form = form })
 	if a.win != nil {
 		a.place()
