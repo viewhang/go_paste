@@ -1,6 +1,9 @@
 package app
 
 import (
+	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo/plugins/glass"
@@ -124,18 +127,109 @@ func (a *App) themeTextInput(c *ui.Context, value *string) ui.Element {
 	return field
 }
 
-// themeNumberInput 为数字输入与步进按钮绘制统一材质并复用框架的范围校验
+type numberInputState struct {
+	text  string
+	value float64
+}
+
+// themeNumberInput 将数字输入与上下步进按钮绘制在同一个边框内并保留范围校验
 func (a *App) themeNumberInput(c *ui.Context, value *float64, lo, hi, step float64) ui.Element {
-	if a.settings.Theme != themeGlass {
-		return ui.NumberInput(c, value, lo, hi, step)
-	}
 	t := c.Theme()
-	parts := *t
-	parts.Surface, parts.Accent = ui.Transparent, t.Focus
-	c.SetTheme(&parts)
-	field := ui.NumberInput(c, value, lo, hi, step)
-	c.SetTheme(t)
-	return a.themeSurface(field.Radius(t.Radius), t.Surface, false)
+	group := ui.Row(c).AlignItems(ui.Stretch).Width(t.Space(32)).Shrink(0).Role(ui.RoleGroup)
+	decimals := 0
+	if s := strconv.FormatFloat(step, 'f', -1, 64); strings.Contains(s, ".") {
+		decimals = len(s) - strings.IndexByte(s, '.') - 1
+	}
+	format := func() string { return strconv.FormatFloat(*value, 'f', decimals, 64) }
+	state := ui.Local(group, "number-input", func() numberInputState {
+		return numberInputState{text: format(), value: *value}
+	})
+	if state.value != *value {
+		state.text = format()
+	}
+	set := func(v float64) {
+		v = math.Max(lo, math.Min(hi, v))
+		p := math.Pow10(decimals)
+		v = math.Round(v*p) / p
+		*value = v
+	}
+	advance := func(delta float64) {
+		set(*value + delta)
+		state.text = format()
+	}
+	group.Children(func() {
+		ui.Box(c).FillWidth().MinWidth(0).Children(func() {
+			input := ui.TextInputBase(c, &state.text).FillWidth().MinWidth(0).
+				Padding(t.Space(1.5), t.Space(6)+1, t.Space(1.5), t.Space(2.5)).Radius(t.Radius).Border(1, t.Border)
+			a.themeSurface(input, t.Surface, false)
+			if input.Focused() {
+				input.BorderColor(t.Focus)
+			} else if input.Hovered() {
+				input.BorderColor(t.Border.Mix(t.Text, 0.25))
+			}
+			if input.Changed() {
+				if v, err := strconv.ParseFloat(strings.TrimSpace(state.text), 64); err == nil && v >= lo && v <= hi {
+					set(v)
+				}
+			}
+			if input.Shortcut(0, ui.KeyUp) {
+				advance(step)
+			}
+			if input.Shortcut(0, ui.KeyDown) {
+				advance(-step)
+			}
+			if !input.Focused() || input.Submitted() {
+				state.text = format()
+			}
+			input.Range(lo, hi, *value).Step(step)
+		})
+		ui.Row(c).Absolute().Top(1).Bottom(1).Right(1).Width(t.Space(3.5) + 1).AlignItems(ui.Stretch).Children(func() {
+			ui.Box(c).Width(1).Shrink(0).Background(t.Border)
+			ui.Column(c).FillWidth().Children(func() {
+				button := func(up bool) ui.Element {
+					b := ui.ButtonBase(c).FillWidth().Height(0).Grow(1).Padding(0)
+					radius := max(float32(0), t.Radius-1)
+					if up {
+						b.Radius(0, radius, 0, 0).Label("Increase")
+					} else {
+						b.Radius(0, 0, radius, 0).Label("Decrease")
+					}
+					b.Disabled((up && *value >= hi) || (!up && *value <= lo))
+					if !b.IsDisabled() {
+						if b.Pressed() {
+							b.Background(t.SurfacePressed)
+						} else if b.Hovered() {
+							b.Background(t.SurfaceHover)
+						}
+					}
+					color := t.Text
+					if b.IsDisabled() {
+						color = t.TextMuted
+					}
+					b.DrawOver(func(p *ui.Painter, r ui.Rect) {
+						icon := icoChevron
+						if up {
+							icon = icoChevronUp
+						}
+						size := t.Space(2.5)
+						p.Icon(icon, ui.Rect{X: r.X + (r.W-size)/2, Y: r.Y + (r.H-size)/2, W: size, H: size}, color)
+					})
+					return b
+				}
+				increase := button(true)
+				ui.Box(c).FillWidth().Height(1).Background(t.Border)
+				decrease := button(false)
+				if increase.Clicked() {
+					advance(step)
+				}
+				if decrease.Clicked() {
+					advance(-step)
+				}
+			})
+		})
+	})
+	state.value = *value
+	return group
 }
 
 // themeSegmented 按主题绘制分段选择并复用框架的选择、键盘与无障碍行为

@@ -32,6 +32,9 @@ var (
 // icoChevron 表示下拉选择入口
 var icoChevron = icon(`<path d="m6 9 6 6 6-6"/>`)
 
+// icoChevronUp 表示数字输入的递增入口
+var icoChevronUp = icon(`<path d="m18 15-6-6-6 6"/>`)
+
 func kindIcon(k types.Kind) *ui.SVG {
 	switch k {
 	case types.KindImage:

@@ -71,6 +71,12 @@ func TestThemedControls(t *testing.T) {
 				if number != 4 {
 					t.Fatalf("数字编辑或步进范围不正确：%v", number)
 				}
+				click("Decrease")
+				click("Increase")
+				click("Increase")
+				if number != 4 {
+					t.Fatalf("上下步进按钮或边界禁用不正确：%v", number)
+				}
 				click("第二项")
 				if segment != 1 {
 					t.Fatal("分段点击未切换选项")
