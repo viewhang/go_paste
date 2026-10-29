@@ -91,7 +91,11 @@ func TestExcludedAppsSettings(t *testing.T) {
 			if !tt.HasText(locales.AddExcludedApp()) || !tt.HasText("Test App") {
 				t.Fatalf("%s 主题 %d 未显示应用排除设置", lang, theme)
 			}
-			if name, ok := tt.Find("Test App"); !ok || name.X < 50 {
+			row, ok := tt.Find("Test App")
+			if !ok || row.H != 28 {
+				t.Fatal("应用列表未使用紧凑行高")
+			}
+			if pixel := tt.Image().RGBAAt(int(row.X+12), int(row.Y+14)); pixel.R != 84 || pixel.G != 104 || pixel.B != 255 {
 				t.Fatal("应用名称前未显示应用图标")
 			}
 			if !tt.HasText(locales.OtherRules()) || !tt.HasText(locales.ExcludeConfidential()) {
@@ -135,6 +139,9 @@ func TestExcludedAppsSettings(t *testing.T) {
 	tt.ClickAt(486, rule.Y+rule.H/2)
 	if !a.settings.ExcludeConfidential || !st.Settings().ExcludeConfidential {
 		t.Fatal("机密内容排除开关未即时生效并保存")
+	}
+	if err := tt.Click("Test App"); err != nil {
+		t.Fatal(err)
 	}
 	if err := tt.Click(locales.RemoveExcludedApp("Test App")); err != nil {
 		t.Fatal(err)
@@ -210,6 +217,9 @@ func TestDefaultExcludedAppsSettings(t *testing.T) {
 			}
 		}
 	}
+	if err := tt.Click("1Password"); err != nil {
+		t.Fatal(err)
+	}
 	if err := tt.Click(locales.RemoveExcludedApp("1Password")); err != nil {
 		t.Fatal(err)
 	}
@@ -239,6 +249,82 @@ func TestDefaultExcludedAppsSettings(t *testing.T) {
 	st = reopened
 	if len(st.Settings().ExcludedApps) != 0 {
 		t.Fatal("清空排除列表后重启恢复了默认项")
+	}
+}
+
+// TestExcludedAppsListSelection 验证列表键盘选择、长列表滚动、移除禁用状态及隐藏规则保留
+func TestExcludedAppsListSelection(t *testing.T) {
+	for _, theme := range []int{themeClassic, themeGlass} {
+		for _, dark := range []bool{false, true} {
+			t.Run(fmt.Sprintf("theme-%d-dark-%t", theme, dark), func(t *testing.T) {
+				t.Setenv("MYGO_LOCALE", "zh-Hans")
+				st, err := store.Open(t.TempDir())
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = st.Close() })
+				a := NewApp()
+				a.st, a.settings = st, st.Settings()
+				a.settings.Theme = theme
+				path := t.TempDir()
+				a.setSetting(func(s *types.Settings) {
+					s.ExcludedApps = []types.ExcludedApp{
+						{ID: "missing", Name: "Missing", Path: filepath.Join(path, "Missing.app")},
+						{ID: "first", Name: "First", Path: path},
+						{ID: "second", Name: "Second", Path: path},
+					}
+				})
+				tt := ui.NewTester(func(c *ui.Context) {
+					a.applyTheme(c)
+					a.settingsExcludedApps(c, a.palette(c))
+				}, 520, 300)
+				tt.SetDark(dark)
+				click := func(label string) {
+					t.Helper()
+					if err := tt.Click(label); err != nil {
+						t.Fatal(err)
+					}
+				}
+				click(locales.RemoveExcludedApp(locales.AppFilter()))
+				if len(st.Settings().ExcludedApps) != 3 {
+					t.Fatal("未选择应用时移除按钮应禁用")
+				}
+				click("First")
+				tt.Key(0, ui.KeyDown)
+				click(locales.RemoveExcludedApp("Second"))
+				if apps := st.Settings().ExcludedApps; len(apps) != 2 || apps[0].ID != "missing" || apps[1].ID != "first" {
+					t.Fatalf("未移除键盘选中的应用或错误移除隐藏规则：%+v", apps)
+				}
+				click(locales.RemoveExcludedApp(locales.AppFilter()))
+				if len(st.Settings().ExcludedApps) != 2 {
+					t.Fatal("移除后未清除选择并禁用按钮")
+				}
+				click("First")
+				click(locales.RemoveExcludedApp("First"))
+				if apps := st.Settings().ExcludedApps; len(apps) != 1 || apps[0].ID != "missing" || !tt.HasText(locales.AddExcludedApp()) {
+					t.Fatal("列表清空后未保留隐藏规则或添加入口")
+				}
+				a.setSetting(func(s *types.Settings) {
+					for i := range 10 {
+						s.ExcludedApps = append(s.ExcludedApps, types.ExcludedApp{ID: fmt.Sprint(i), Name: fmt.Sprintf("App %d", i), Path: path})
+					}
+				})
+				tt.Frame()
+				click("App 0")
+				for range 9 {
+					tt.Key(0, ui.KeyDown)
+				}
+				last, ok := tt.Find("App 9")
+				add, _ := tt.Find(locales.AddExcludedApp())
+				if !ok || last.Y < 0 || last.Y+last.H > add.Y {
+					t.Fatalf("长列表未滚动到键盘选中的应用：%+v，存在=%t", last, ok)
+				}
+				click(locales.RemoveExcludedApp("App 9"))
+				if len(st.Settings().ExcludedApps) != 10 {
+					t.Fatal("长列表末尾选中的应用未移除")
+				}
+			})
+		}
 	}
 }
 

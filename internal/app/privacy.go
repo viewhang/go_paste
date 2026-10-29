@@ -17,32 +17,7 @@ import (
 // settingsPrivacy 显示排除应用及机密内容、空白文本与图片大小规则
 func (a *App) settingsPrivacy(c *ui.Context, p palette) {
 	ui.Column(c).Gap(20).Children(func() {
-		a.card(c, p).Children(func() {
-			settingRow(c, p, locales.ExcludedApps(), "", func() {
-				a.themeButton(c, locales.AddExcludedApp()).Disabled(a.choosingExcludedApps).OnClick(a.chooseExcludedApps)
-			})
-			remove := -1
-			for i, app := range a.settings.ExcludedApps {
-				path := excludedAppPath(app, a.installedApps)
-				if path == "" {
-					continue
-				}
-				ui.Row(c).Key(app.ID).Gap(10).AlignItems(ui.Center).Children(func() {
-					if icon := a.fileIcon(path); icon != nil {
-						ui.Image(c, icon).Size(24, 24).Fit(ui.Contain)
-					}
-					ui.Text(c, app.Name).Grow(1).MaxLines(1).Ellipsis("…").FontSize(12.5).TextColor(p.text)
-					if a.themeButton(c, "×").Label(locales.RemoveExcludedApp(app.Name)).Clicked() {
-						remove = i
-					}
-				})
-			}
-			if remove >= 0 {
-				a.setSetting(func(s *types.Settings) {
-					s.ExcludedApps = slices.Delete(slices.Clone(s.ExcludedApps), remove, remove+1)
-				})
-			}
-		})
+		a.settingsExcludedApps(c, p)
 		ui.Column(c).Gap(8).Children(func() {
 			sectionTitle(c, p, locales.OtherRules())
 			a.card(c, p).Children(func() {
@@ -69,6 +44,66 @@ func (a *App) settingsPrivacy(c *ui.Context, p palette) {
 				})
 				if int(limit) != a.settings.ImageLimitMiB {
 					a.setSetting(func(s *types.Settings) { s.ImageLimitMiB = int(limit) })
+				}
+			})
+		})
+	})
+}
+
+// settingsExcludedApps 显示交替底色的应用单选列表与底部添加、移除按钮
+func (a *App) settingsExcludedApps(c *ui.Context, p palette) {
+	var apps []types.ExcludedApp
+	for _, app := range a.settings.ExcludedApps {
+		if app.Path = excludedAppPath(app, a.installedApps); app.Path != "" {
+			apps = append(apps, app)
+		}
+	}
+	ui.Column(c).Gap(8).Children(func() {
+		sectionTitle(c, p, locales.ExcludedApps())
+		box := ui.Column(c).Radius(8).Border(1, p.border).Background(p.bg).Clip()
+		selected := ui.Local(box, "selected", func() int { return -1 })
+		state := ui.Local(box, "list", func() ui.ListState { return ui.ListState{} })
+		state.Selected = selected
+		state.Key = func(i int) any { return apps[i].ID }
+		state.Label = func(i int) string { return apps[i].Name }
+		box.Children(func() {
+			ui.List(c, state, len(apps)).Height(float32(clampInt(len(apps), 3, 7)) * 28).Label(locales.ExcludedApps()).Rows(func(r ui.ListRow) {
+				app := apps[r.Index]
+				row := ui.Row(c).Height(28).Padding(0, 10).Gap(8).AlignItems(ui.Center).TextColor(p.text)
+				if r.Selected() {
+					row.Background(p.accent).TextColor(p.accentText)
+				} else if r.Index%2 == 1 {
+					row.Background(p.text.Alpha(0.035))
+				}
+				row.Children(func() {
+					if icon := a.fileIcon(app.Path); icon != nil {
+						ui.Image(c, icon).Size(18, 18).Fit(ui.Contain)
+					}
+					ui.Text(c, app.Name).Grow(1).MaxLines(1).Ellipsis("…").FontSize(12.5)
+				})
+			})
+			ui.Box(c).Height(1).Background(p.border)
+			ui.Row(c).Height(28).Padding(2, 4).AlignItems(ui.Center).Background(p.text.Alpha(0.035)).Role(ui.RoleToolbar).Children(func() {
+				button := func(symbol, label string, disabled bool) ui.Element {
+					b := ui.ButtonBase(c).Size(26, 24).Padding(0).Radius(3).Label(label).Tooltip(label).Disabled(disabled).TextColor(p.muted)
+					if b.Hovered() && !disabled {
+						b.Background(p.hover)
+					}
+					b.Children(func() { ui.Text(c, symbol).FontSize(18) })
+					return b
+				}
+				button("+", locales.AddExcludedApp(), a.choosingExcludedApps).OnClick(a.chooseExcludedApps)
+				ui.Box(c).Width(1).Height(16).Margin(0, 3).Background(p.border)
+				label := locales.RemoveExcludedApp(locales.AppFilter())
+				if *selected >= 0 {
+					label = locales.RemoveExcludedApp(apps[*selected].Name)
+				}
+				if button("−", label, *selected < 0).Clicked() {
+					id := apps[*selected].ID
+					a.setSetting(func(s *types.Settings) {
+						s.ExcludedApps = slices.DeleteFunc(slices.Clone(s.ExcludedApps), func(app types.ExcludedApp) bool { return app.ID == id })
+					})
+					*selected = -1
 				}
 			})
 		})
