@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -32,6 +33,35 @@ func TestPasteFailureKeepsSearch(t *testing.T) {
 				t.Fatalf("形态 %d 的搜索在粘贴失败或隐藏后丢失，重置开关 %v", form, reset)
 			}
 		}
+	}
+}
+
+// TestPanelClickDirectionKeys 验证鼠标选中记录后方向键与空格预览使用当前选择
+func TestPanelClickDirectionKeys(t *testing.T) {
+	for _, theme := range []int{themeClassic, themeGlass} {
+		t.Run(fmt.Sprintf("theme-%d", theme), func(t *testing.T) {
+			a := NewApp()
+			a.form, a.settings = formPanel, types.DefaultSettings()
+			a.settings.Theme = theme
+			for i := range 20 {
+				a.records = append(a.records, &types.Record{ID: fmt.Sprint(i), Kind: types.KindText, Text: fmt.Sprintf("记录 %d", i)})
+			}
+			initTestStore(t, a)
+			tt := ui.NewTester(a.view, panelWidth, panelHeight)
+			if err := tt.Click("记录 1"); err != nil || a.sel != 1 {
+				t.Fatalf("鼠标未选中记录：%d，%v", a.sel, err)
+			}
+			for i, key := range []ui.Key{ui.KeyDown, ui.KeyDown, ui.KeyUp} {
+				tt.Key(0, key)
+				if want := []int{2, 3, 2}[i]; a.sel != want {
+					t.Fatalf("鼠标选中后方向键 %v 未切换选择：得到 %d，期望 %d", key, a.sel, want)
+				}
+			}
+			tt.Key(0, ui.KeySpace)
+			if !a.preview || a.detail == nil || a.detail.ID != a.records[2].ID || a.sel != 2 {
+				t.Fatalf("鼠标选中后空格未预览当前选择：预览 %v，选择 %d", a.preview, a.sel)
+			}
+		})
 	}
 }
 

@@ -72,7 +72,7 @@ func swatchTile(c *ui.Context, color string, size float32) ui.Element {
 
 // ---- panel rows ----
 
-// panelRow 按主题展示记录标题、来源图标、复制时间与快速粘贴编号并支持拖拽
+// panelRow 按主题展示记录、支持拖拽并将点击后的键盘焦点交给列表
 func (a *App) panelRow(c *ui.Context, r *types.Record, i int) {
 	p := a.palette(c)
 	sel := i == a.sel
@@ -118,6 +118,7 @@ func (a *App) panelRow(c *ui.Context, r *types.Record, i int) {
 	})
 	if row.Clicked() {
 		a.sel = i
+		a.list.Focus(c)
 	}
 	if row.DoubleClicked() {
 		a.later(func() { a.paste(r, false) })
