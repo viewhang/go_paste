@@ -12,6 +12,24 @@ import (
 	"gopaste/internal/types"
 )
 
+// TestLanguageFollowsSystem 验证系统语言为简体中文时仍显示跟随系统且重绘后保留选项
+func TestLanguageFollowsSystem(t *testing.T) {
+	t.Setenv("MYGO_LOCALE", "zh-Hans")
+	for _, theme := range []int{themeClassic, themeGlass} {
+		t.Run(fmt.Sprintf("theme-%d", theme), func(t *testing.T) {
+			a := NewApp()
+			a.settings.Theme = theme
+			tt := ui.NewTester(func(c *ui.Context) { a.settingsLanguage(c, pal(c)) }, 400, 70)
+			for range 2 {
+				if !tt.HasText("跟随系统") || tt.HasText("简体中文") {
+					t.Fatal("跟随系统被显示为最终解析的简体中文")
+				}
+				tt.Frame()
+			}
+		})
+	}
+}
+
 // TestLocalizedViews 验证两种面板切换语言后更新文案并保留用户列表名称
 func TestLocalizedViews(t *testing.T) {
 	for _, form := range []int{formBar, formPanel} {

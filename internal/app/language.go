@@ -6,9 +6,10 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"gopaste/internal/locales"
+	"gopaste/internal/native"
 )
 
-// settingsLanguage 显示应用语言选择并通过 MyGo 保存选择或恢复跟随系统
+// settingsLanguage 按保存的语言偏好显示选项并通过 MyGo 应用语言
 func (a *App) settingsLanguage(c *ui.Context, p palette) {
 	settingRow(c, p, locales.Language(), "", func() {
 		languages := mygo.App.Languages()
@@ -16,7 +17,10 @@ func (a *App) settingsLanguage(c *ui.Context, p palette) {
 		for _, tag := range languages {
 			choices = append(choices, i18n.Autonym(tag))
 		}
-		current := i18n.Autonym(i18n.Locale())
+		current := locales.FollowSystem()
+		if native.LocaleOverride() != "" {
+			current = i18n.Autonym(i18n.Locale())
+		}
 		selected := current
 		a.themeSelect(c, &selected, choices).Label(locales.Language())
 		if selected != current {
