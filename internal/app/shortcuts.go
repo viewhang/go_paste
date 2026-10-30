@@ -23,7 +23,6 @@ var shortcutActions = []struct {
 	{"paste", locales.Paste, "Enter"},
 	{"pasteAs", locales.PasteAs, "Shift+Enter"},
 	{"preview", locales.Preview, "Space"},
-	{"copy", locales.ShortcutCopy, "CmdOrCtrl+C"},
 	{"delete", locales.DeleteRecord, "Backspace"},
 	{"search", locales.ShortcutSearch, "CmdOrCtrl+F"},
 	{"previousList", locales.ShortcutPreviousList, "CmdOrCtrl+["},
@@ -92,7 +91,7 @@ func (a *App) setShortcut(id, acc string) error {
 	if mods == 0 && key != ui.KeyEnter && key != ui.KeySpace && !(id == "delete" && key == ui.KeyBackspace) && !(key >= ui.KeyF1 && key <= ui.KeyF12) {
 		return errors.New(locales.ShortcutNeedsCombination())
 	}
-	if mods == ui.Cmd && (key == ui.KeyA || key == ui.KeyX || key == ui.KeyV || key == ui.KeyZ || key == ui.KeyC && id != "copy") {
+	if mods == ui.Cmd && (key == ui.KeyA || key == ui.KeyX || key == ui.KeyV || key == ui.KeyZ || key == ui.KeyC) {
 		return errors.New(locales.ShortcutTextEditing())
 	}
 	if mods == ui.Cmd && slices.Contains(quickPasteKeys[:], key) {

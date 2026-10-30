@@ -1071,16 +1071,6 @@ func (msgs Messages) AutoPasteFailed() string {
 	return Catalog.Format(msgs.locale, "autoPasteFailed", nil)
 }
 
-// Copied says "已复制"
-// in the language the app shows.
-func Copied() string { return In(i18n.Locale()).Copied() }
-
-// Copied says "已复制"
-// in the language of msgs.
-func (msgs Messages) Copied() string {
-	return Catalog.Format(msgs.locale, "copied", nil)
-}
-
 // Exported says "已导出"
 // in the language the app shows.
 func Exported() string { return In(i18n.Locale()).Exported() }
@@ -1329,16 +1319,6 @@ func ShortcutToggle() string { return In(i18n.Locale()).ShortcutToggle() }
 // in the language of msgs.
 func (msgs Messages) ShortcutToggle() string {
 	return Catalog.Format(msgs.locale, "shortcutToggle", nil)
-}
-
-// ShortcutCopy says "复制选中记录"
-// in the language the app shows.
-func ShortcutCopy() string { return In(i18n.Locale()).ShortcutCopy() }
-
-// ShortcutCopy says "复制选中记录"
-// in the language of msgs.
-func (msgs Messages) ShortcutCopy() string {
-	return Catalog.Format(msgs.locale, "shortcutCopy", nil)
 }
 
 // ShortcutSearch says "聚焦搜索"

@@ -66,9 +66,6 @@ func (a *App) keyboard(c *ui.Context) {
 	if a.shortcutPressed(c, "settings") && a.once() {
 		a.openSettings()
 	}
-	if a.shortcutPressed(c, "copy") && a.once() && !a.search.Focused(c) {
-		a.copySelected(false)
-	}
 	if a.settings.Shortcuts["preview"] == "" && c.Shortcut(ui.Cmd, ui.KeyY) && a.once() {
 		a.openPreview()
 	}
@@ -180,21 +177,6 @@ func (a *App) pasteData(recordID string, data transfer.Data) {
 			a.storageError(err)
 		}
 	}
-}
-
-func (a *App) copySelected(plain bool) {
-	if rec := a.selected(); rec != nil {
-		a.copy(rec, plain)
-	}
-}
-
-// copy 将记录写入剪贴板并显示操作结果
-func (a *App) copy(rec *types.Record, plain bool) {
-	if err := a.writeClipboard(rec, plain); err != nil {
-		a.toast(err.Error())
-		return
-	}
-	a.notify(locales.Copied())
 }
 
 func (a *App) remove(rec *types.Record) {

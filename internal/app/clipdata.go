@@ -16,20 +16,10 @@ import (
 	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
 
-	"gopaste/internal/clip"
 	"gopaste/internal/locales"
 	"gopaste/internal/native"
 	"gopaste/internal/types"
 )
-
-// writeClipboard 按记录类型将内容写回系统剪贴板
-func (a *App) writeClipboard(rec *types.Record, plain bool) error {
-	data, err := a.clipboardData(rec, plain)
-	if err != nil {
-		return err
-	}
-	return clip.Write(data)
-}
 
 // clipboardData 保留记录原文与格式，写入文件前检查读取权限，仅在指定纯文本时移除 HTML
 func (a *App) clipboardData(rec *types.Record, plain bool) (transfer.Data, error) {

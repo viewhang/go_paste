@@ -64,7 +64,6 @@ On macOS, automatic paste requires permission in **System Settings → Privacy &
 | `⌘1–0` / `Ctrl+1–0` | Paste a visible item, up to ten items |
 | `Space` | Preview |
 | `⌘F` / `Ctrl+F` | Search |
-| `⌘C` / `Ctrl+C` | Copy the selected record |
 | `⌘,` / `Ctrl+,` | Open Settings |
 | `Backspace` | Delete the selected record |
 | `Esc` | Close the preview, clear search or hide the panel |
