@@ -50,7 +50,7 @@ func (a *App) promptOverlay(c *ui.Context, p palette) {
 					})
 				})
 				if ps.err != "" {
-					ui.Text(c, ps.err).FontSize(11).TextColor(p.accent)
+					ui.Text(c, ps.err).FontSize(11).TextColor(p.danger)
 				}
 				ui.Row(c).Gap(7).Justify(ui.End).Children(func() {
 					if a.themeButton(c, locales.Cancel()).Clicked() {

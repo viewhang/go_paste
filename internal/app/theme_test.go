@@ -229,7 +229,7 @@ func TestTabsScrollbarDrag(t *testing.T) {
 			}
 			tt := ui.NewTester(func(c *ui.Context) {
 				a.applyTheme(c)
-				p := a.palette(c)
+				p := pal(c)
 				c.Root().Background(p.bg)
 				a.tabsRow(c, p)
 			}, panelMinWidth, 40)

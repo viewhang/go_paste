@@ -16,7 +16,7 @@ import (
 // settingsView 按当前主题显示固定分类菜单与独立滚动的设置明细
 func (a *App) settingsView(c *ui.Context) {
 	a.applyTheme(c)
-	p := a.palette(c)
+	p := pal(c)
 	root := c.Root().Background(p.bg)
 	ui.Column(c).Fill().Children(func() {
 		a.settingsHeader(c, p)
@@ -32,13 +32,13 @@ func (a *App) settingsView(c *ui.Context) {
 			menu := ui.Sidebar(c, &a.settingsPage, func() {
 				for _, page := range pages {
 					item := ui.SidebarItem(c, page.id, nil, page.title)
-					if a.settings.Theme == themeGlass && page.id == a.settingsPage {
-						item.Background(p.accentSoft).TextColor(p.text)
+					if page.id == a.settingsPage {
+						item.Background(p.accentSoft).TextColor(p.accent)
 					}
 				}
-			}).Width(160).Background(p.bg)
+			}).Width(160).Background(p.chrome)
 			if a.settings.Theme == themeGlass {
-				menu.Material(glass.Glass{Tint: p.surface.Alpha(0.6)})
+				menu.Material(glass.Glass{Tint: p.chrome.Alpha(0.6)})
 			}
 			if menu.Changed() {
 				a.recording = ""
@@ -62,7 +62,9 @@ func (a *App) settingsHeader(c *ui.Context, p palette) ui.Element {
 	head := ui.Row(c).Height(max(bar.Height, 46)).
 		Padding(0, bar.Right+14, 0, bar.Left+16).Gap(10).AlignItems(ui.Center).DragWindow()
 	if a.settings.Theme == themeGlass {
-		head.Material(glass.Glass{Tint: p.surface.Alpha(0.6)})
+		head.Material(glass.Glass{Tint: p.chrome.Alpha(0.6)})
+	} else {
+		head.Background(p.chrome)
 	}
 	head.Children(func() {
 		ui.Text(c, locales.Settings()).FontSize(13.5).Bold().TextColor(p.text)
@@ -110,13 +112,11 @@ func settingRow(c *ui.Context, p palette, title, desc string, control func()) {
 	})
 }
 
-// card 按主题绘制设置分组并让玻璃主题沿用记录选中底色
+// card 使用容器背景绘制设置分组并保留各主题的边框样式
 func (a *App) card(c *ui.Context, p palette) ui.Element {
-	e := ui.Column(c).Padding(14, 16).Gap(13).Radius(11)
-	if a.settings.Theme == themeGlass {
-		e.Background(p.accentSoft)
-	} else {
-		e.Background(p.surface).Border(1, p.border)
+	e := ui.Column(c).Padding(14, 16).Gap(13).Radius(11).Background(p.surface)
+	if a.settings.Theme != themeGlass {
+		e.Border(1, p.border)
 	}
 	return e
 }
@@ -278,7 +278,7 @@ func (a *App) settingsData(c *ui.Context, p palette) {
 			ui.Divider(c)
 			count := len(a.records)
 			settingRow(c, p, locales.ClearHistory(), locales.RecordsPresent(count), func() {
-				if a.themeButton(c, locales.ClearAction()).Clicked() {
+				if a.themeButton(c, locales.ClearAction()).TextColor(p.danger).Clicked() {
 					res, err := mygo.Dialog.Message(mygo.MessageOptions{
 						Type:          mygo.MessageWarning,
 						Title:         locales.ClearHistoryTitle(),

@@ -20,7 +20,7 @@ func TestHistoryStorageSetting(t *testing.T) {
 	defer st.Close()
 	a := NewApp()
 	a.st, a.settings = st, st.Settings()
-	tt := ui.NewTester(func(c *ui.Context) { a.settingsHistory(c, a.palette(c)) }, 560, 400)
+	tt := ui.NewTester(func(c *ui.Context) { a.settingsHistory(c, pal(c)) }, 560, 400)
 	unit, ok := tt.Find("MiB")
 	if !ok || unit.Y < 0 || unit.Y+unit.H > 400 {
 		t.Fatal("历史容量控件未显示")

@@ -41,8 +41,7 @@ func cardTime(c *ui.Context, r *types.Record, size float32) ui.Element {
 		Tooltip(fullTime(r.CreatedAt))
 }
 
-// thumbTile is a rounded square holding a picture, or the type icon on a
-// tinted background when there is none.
+// thumbTile 显示原始图片或中性底色的内容类型图标
 func thumbTile(c *ui.Context, b *ui.Bitmap, r *types.Record, size float32) ui.Element {
 	p := pal(c)
 	box := ui.Box(c).Size(size, size).Radius(size * 0.26).Clip()
@@ -52,7 +51,7 @@ func thumbTile(c *ui.Context, b *ui.Bitmap, r *types.Record, size float32) ui.El
 		})
 		return box
 	}
-	kc := kindColor(r.Kind, p.dark)
+	kc := p.muted
 	box.Background(tint(kc, p.surface, 0.14))
 	box.Children(func() {
 		a := ui.Row(c).Fill().Center()
@@ -74,7 +73,7 @@ func swatchTile(c *ui.Context, color string, size float32) ui.Element {
 
 // panelRow 按主题展示记录、支持拖拽并将点击后的键盘焦点交给列表
 func (a *App) panelRow(c *ui.Context, r *types.Record, i int) {
-	p := a.palette(c)
+	p := pal(c)
 	sel := i == a.sel
 	row := ui.Row(c).Height(a.panelRowHeight()).Padding(9, 10).Gap(10).Radius(10).AlignItems(ui.Center)
 	row.Focusable().Cursor(ui.CursorPointer)
@@ -87,9 +86,7 @@ func (a *App) panelRow(c *ui.Context, r *types.Record, i int) {
 	}
 	if sel {
 		background = p.accentSoft
-		if a.settings.Theme != themeGlass {
-			border = p.accentLine
-		}
+		border = ui.Transparent
 	} else if row.Hovered() {
 		background = p.raised
 		if a.settings.Theme != themeGlass {
@@ -129,9 +126,9 @@ func (a *App) panelRow(c *ui.Context, r *types.Record, i int) {
 
 // barCard 按主题显示等比缩放的卡片和快速粘贴编号并支持拖拽
 func (a *App) barCard(c *ui.Context, r *types.Record, i int) {
-	p := a.palette(c)
+	p := pal(c)
 	sel := i == a.sel
-	kc := kindColor(r.Kind, p.dark)
+	kc := p.muted
 	_, height := c.Size()
 	width, cardHeight := a.barCardSize(height)
 	card := ui.Column(c).Size(width, cardHeight).Radius(12).Clip().Focusable()
@@ -140,16 +137,15 @@ func (a *App) barCard(c *ui.Context, r *types.Record, i int) {
 		card.BorderWidth(1)
 	}
 	if sel {
-		card.BorderColor(p.accent)
+		card.BorderColor(ui.Transparent)
 	}
 	card.Cursor(ui.CursorPointer)
 	background := p.surface
 	if card.Hovered() && !sel {
 		background = p.raised
 	}
-	if sel && a.settings.Theme == themeGlass {
+	if sel {
 		background = p.accentSoft
-		card.BorderColor(p.accentLine)
 	}
 	card.Background(background)
 	card.ContextMenu(func(m *ui.Menu) { a.cardMenu(c, m, r) })

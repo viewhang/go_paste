@@ -18,7 +18,7 @@ func (a *App) view(c *ui.Context) {
 		a.releasePreview()
 	}
 	a.applyTheme(c)
-	p := a.palette(c)
+	p := pal(c)
 	a.acted = false
 	a.vis = a.filtered()
 	a.clampSel()

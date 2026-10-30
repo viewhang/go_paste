@@ -71,7 +71,7 @@ func (a *App) settingsExcludedApps(c *ui.Context, p palette) {
 				app := apps[r.Index]
 				row := ui.Row(c).Height(28).Padding(0, 10).Gap(8).AlignItems(ui.Center).TextColor(p.text)
 				if r.Selected() {
-					row.Background(p.accent).TextColor(p.accentText)
+					row.Background(p.accentSoft)
 				} else if r.Index%2 == 1 {
 					row.Background(p.text.Alpha(0.035))
 				}

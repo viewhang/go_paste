@@ -139,7 +139,7 @@ func (a *App) settingsShortcuts(c *ui.Context, p palette) {
 				})
 			}
 			if a.shortcutError != "" {
-				ui.Text(c, a.shortcutError).FontSize(11).TextColor(p.accent)
+				ui.Text(c, a.shortcutError).FontSize(11).TextColor(p.danger)
 			}
 			ui.Text(c, locales.ShortcutRecorderHint()).FontSize(11).TextColor(p.muted)
 			if a.themeButton(c, locales.RestoreShortcuts()).Clicked() {

@@ -86,7 +86,7 @@ func TestExcludedAppsSettings(t *testing.T) {
 		t.Setenv("MYGO_LOCALE", lang)
 		for _, theme := range []int{themeClassic, themeGlass} {
 			a.settings.Theme = theme
-			tt = ui.NewTester(func(c *ui.Context) { a.settingsPrivacy(c, a.palette(c)) }, 520, 400)
+			tt = ui.NewTester(func(c *ui.Context) { a.settingsPrivacy(c, pal(c)) }, 520, 400)
 			tt.SetLocale(lang)
 			if !tt.HasText(locales.AddExcludedApp()) || !tt.HasText("Test App") {
 				t.Fatalf("%s 主题 %d 未显示应用排除设置", lang, theme)
@@ -201,7 +201,7 @@ func TestDefaultExcludedAppsSettings(t *testing.T) {
 		t.Setenv("MYGO_LOCALE", lang)
 		for _, theme := range []int{themeClassic, themeGlass} {
 			a.settings.Theme = theme
-			tt = ui.NewTester(func(c *ui.Context) { a.settingsPrivacy(c, a.palette(c)) }, 520, 680)
+			tt = ui.NewTester(func(c *ui.Context) { a.settingsPrivacy(c, pal(c)) }, 520, 680)
 			tt.SetLocale(lang)
 			for _, app := range defaults {
 				if tt.HasText(app.Name) != (app.Name == "1Password") {
@@ -276,7 +276,7 @@ func TestExcludedAppsListSelection(t *testing.T) {
 				})
 				tt := ui.NewTester(func(c *ui.Context) {
 					a.applyTheme(c)
-					a.settingsExcludedApps(c, a.palette(c))
+					a.settingsExcludedApps(c, pal(c))
 				}, 520, 300)
 				tt.SetDark(dark)
 				click := func(label string) {

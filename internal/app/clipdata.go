@@ -86,7 +86,7 @@ func (a *App) recordDrag(c *ui.Context, source ui.Element, rec *types.Record) {
 		a.dragImage = image.NewRGBA(image.Rect(0, 0, 96, 32))
 	}
 	preview := a.dragImage
-	p, theme := a.palette(c), *c.Theme()
+	p, theme := pal(c), *c.Theme()
 	source.Drag(rec).DragDataFrom(func() transfer.Data {
 		img := ui.Render(func(c *ui.Context) {
 			c.SetTheme(&theme)

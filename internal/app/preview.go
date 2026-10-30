@@ -40,7 +40,7 @@ func (a *App) previewPane(c *ui.Context, p palette) {
 
 // previewHead 显示预览记录的类型、摘要与关闭入口
 func (a *App) previewHead(c *ui.Context, p palette, r *types.Record) {
-	kc := kindColor(r.Kind, p.dark)
+	kc := p.muted
 	ui.Row(c).Padding(9, 12).Gap(8).AlignItems(ui.Center).Children(func() {
 		tile := ui.Row(c).Padding(3, 7).Radius(6).Gap(5).AlignItems(ui.Center)
 		tile.Background(tint(kc, p.surface, 0.16))
@@ -112,7 +112,7 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 				ui.Image(c, bitmap).Fill().Fit(ui.Contain).Radius(8).Label(recordTitle(r)).
 					ContextMenu(func(m *ui.Menu) { a.cardMenu(c, m, r) })
 			} else {
-				ui.Text(c, locales.ImageMissing()).FontSize(12).TextColor(p.faint).Center()
+				ui.Text(c, locales.ImageMissing()).FontSize(12).TextColor(p.warning).Center()
 			}
 		})
 		return
@@ -124,12 +124,12 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 	case types.KindImage:
 		body.Padding(12).Children(func() {
 			box := ui.Box(c).Fill().Radius(8).Clip()
-			box.Background(tint(kindColor(r.Kind, p.dark), p.bg, 0.05))
+			box.Background(tint(p.muted, p.bg, 0.05))
 			box.Children(func() {
 				if b := a.previewBitmap(r.Image, max(w-24, h-100)); b != nil {
 					ui.Image(c, b).Fill().Fit(ui.Contain)
 				} else {
-					ui.Text(c, locales.ImageMissing()).FontSize(12).TextColor(p.faint).Center()
+					ui.Text(c, locales.ImageMissing()).FontSize(12).TextColor(p.warning).Center()
 				}
 			})
 		})
@@ -164,7 +164,7 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 				}
 				rowEl.Children(func() {
 					ui.Text(c, option.label).FontSize(9.5).Bold().
-						TextColor(kindColor(types.KindColor, p.dark)).Width(30)
+						TextColor(p.muted).Width(30)
 					ui.Text(c, val).FontSize(12).TextColor(p.text).Grow(1).SingleLine()
 					ui.Icon(c, icoClipboard).Size(11, 11).TextColor(p.faint)
 				})
@@ -202,7 +202,7 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 						ui.Text(c, f.Path).FontSize(10).TextColor(p.faint).SingleLine()
 					})
 					if f.Missing {
-						ui.Text(c, locales.FileMoved()).FontSize(10).TextColor(ui.Hex("#c98a2b"))
+						ui.Text(c, locales.FileMoved()).FontSize(10).TextColor(p.warning)
 					} else if s := sizeText(f.Size); s != "" {
 						ui.Text(c, s).FontSize(10).TextColor(p.faint)
 					}
@@ -234,6 +234,6 @@ func (a *App) previewFoot(c *ui.Context, p palette, r *types.Record) {
 			a.later(func() { a.paste(r, false) })
 		}
 		ui.Spacer(c)
-		a.iconButton(c, p, icoTrash, locales.DeleteRecord(), func() { a.later(func() { a.remove(r) }) })
+		a.iconButton(c, p, icoTrash, locales.DeleteRecord(), func() { a.later(func() { a.remove(r) }) }).TextColor(p.danger)
 	})
 }

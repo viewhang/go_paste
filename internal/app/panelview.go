@@ -19,7 +19,7 @@ func (a *App) panelView(c *ui.Context, p palette) {
 			box.Background(p.bg.Alpha(0.92))
 		}
 	} else if c.Vibrancy() {
-		box.Background(p.surface.Alpha(0.9))
+		box.Background(p.bg.Alpha(0.9))
 	} else {
 		box.Background(p.bg)
 	}
@@ -47,8 +47,10 @@ func (a *App) panelView(c *ui.Context, p palette) {
 func (a *App) panelHeader(c *ui.Context, p palette) {
 	header := ui.Column(c)
 	if a.settings.Theme == themeGlass {
-		header.Height(glassHeaderHeight).PassThrough().Material(glass.Glass{Tint: p.surface.Alpha(0.6)})
+		header.Height(glassHeaderHeight).PassThrough().Material(glass.Glass{Tint: p.chrome.Alpha(0.6)})
 		header.BorderWidth(0, 0, 1, 0).BorderColor(p.hair)
+	} else {
+		header.Background(p.chrome)
 	}
 	header.Children(func() {
 		a.headerRow(c, p, false)
@@ -114,12 +116,7 @@ func (a *App) settingsButton(c *ui.Context, p palette) {
 
 // searchBox 绘制自动聚焦的搜索框并处理搜索、删除、预览、粘贴与长条导航
 func (a *App) searchBox(c *ui.Context, p palette, compact bool) {
-	box := ui.Row(c).Gap(6).AlignItems(ui.Center).Radius(8).Padding(0, 8)
-	if a.settings.Theme == themeGlass {
-		box.Background(p.bg)
-	} else {
-		a.themeSurface(box, p.hover, false)
-	}
+	box := ui.Row(c).Gap(6).AlignItems(ui.Center).Radius(8).Padding(0, 8).Background(p.surface)
 	box.Border(1, p.border)
 	if compact {
 		box.Width(240).Height(30)
@@ -219,21 +216,14 @@ func (a *App) tabsRow(c *ui.Context, p palette) {
 				}
 				chip.Cursor(ui.CursorPointer)
 				if active {
-					if a.settings.Theme == themeGlass {
-						chip.Background(p.accentSoft)
-					} else {
-						a.themeSurface(chip, p.accent, true)
-					}
+					chip.Background(p.accentSoft)
 				} else if chip.Hovered() {
 					chip.Background(p.hover)
 				}
 				chip.Children(func() {
 					label := ui.Text(c, tab.Name).FontSize(11.5)
 					if active {
-						label.TextColor(p.accentText).Bold()
-						if a.settings.Theme == themeGlass {
-							label.TextColor(p.text)
-						}
+						label.TextColor(p.accent).Bold()
 					} else {
 						label.TextColor(p.muted)
 					}
@@ -339,8 +329,8 @@ func (a *App) statusRow(c *ui.Context, p palette) {
 		if a.needsAccess() {
 			warn := ui.Row(c).Gap(4).AlignItems(ui.Center).Focusable().Cursor(ui.CursorPointer)
 			warn.Children(func() {
-				ui.Icon(c, icoShield).Size(11, 11).TextColor(ui.Hex("#e0a33a"))
-				ui.Text(c, locales.EnableAutoPaste()).FontSize(10.5).TextColor(ui.Hex("#c98a2b"))
+				ui.Icon(c, icoShield).Size(11, 11).TextColor(p.warning)
+				ui.Text(c, locales.EnableAutoPaste()).FontSize(10.5).TextColor(p.warning)
 			})
 			warn.Tooltip(locales.OpenSystemSettingsHint())
 			if warn.Clicked() {
@@ -356,20 +346,21 @@ func hairline(c *ui.Context, p palette) {
 	ui.Box(c).Height(1).Background(p.hair)
 }
 
-// iconButton 显示统一的轻量图标按钮与悬停反馈
-func (a *App) iconButton(c *ui.Context, p palette, svg *ui.SVG, tip string, onClick func()) {
-	b := ui.ButtonBase(c).Size(28, 28).Padding(0).Radius(8).Label(tip)
+// iconButton 返回支持语义着色的轻量图标按钮并显示悬停反馈
+func (a *App) iconButton(c *ui.Context, p palette, svg *ui.SVG, tip string, onClick func()) ui.Element {
+	b := ui.ButtonBase(c).Size(28, 28).Padding(0).Radius(8).Label(tip).TextColor(p.muted)
 	b.Cursor(ui.CursorPointer)
 	if b.Hovered() {
 		b.Background(p.hover)
 	}
 	b.Tooltip(tip)
 	b.Children(func() {
-		ui.Icon(c, svg).Size(14, 14).TextColor(p.muted)
+		ui.Icon(c, svg).Size(14, 14)
 	})
 	if b.Clicked() {
 		onClick()
 	}
+	return b
 }
 
 func (a *App) needsAccess() bool {

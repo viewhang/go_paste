@@ -12,7 +12,7 @@ import (
 func (a *App) barView(c *ui.Context, p palette) {
 	col := ui.Column(c).Fill().Clip()
 	if c.Vibrancy() {
-		col.Background(p.surface.Alpha(0.93))
+		col.Background(p.bg.Alpha(0.93))
 	} else {
 		col.Background(p.bg)
 	}
@@ -37,7 +37,7 @@ func (a *App) barBody(c *ui.Context, p palette) {
 
 // barHeader 显示长条的搜索、用户列表、新增入口与统一设置菜单
 func (a *App) barHeader(c *ui.Context, p palette) {
-	ui.Row(c).Padding(9, 18).Gap(8).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).Padding(9, 18).Gap(8).AlignItems(ui.Center).Background(p.chrome).Children(func() {
 		a.searchBox(c, p, true)
 		ui.Box(c).Width(4)
 
@@ -58,9 +58,6 @@ func (a *App) barHeader(c *ui.Context, p palette) {
 						t := ui.Text(c, tab.Name).FontSize(11)
 						if active {
 							t.TextColor(p.accent).Bold()
-							if a.settings.Theme == themeGlass {
-								t.TextColor(p.text)
-							}
 						} else {
 							t.TextColor(p.muted)
 						}

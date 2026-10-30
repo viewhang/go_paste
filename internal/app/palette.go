@@ -9,12 +9,10 @@ import (
 	"gopaste/internal/types"
 )
 
-// palette is the app's own set of colors, derived from the system theme so
-// that it follows the desktop's light and dark appearance.
+// palette 定义两种主题共用并随系统明暗外观切换的语义色板
 type palette struct {
-	dark bool
-
 	bg      ui.Color
+	chrome  ui.Color
 	surface ui.Color
 	raised  ui.Color
 	hover   ui.Color
@@ -30,48 +28,54 @@ type palette struct {
 	accentText ui.Color
 	accentSoft ui.Color
 	accentLine ui.Color
+	danger     ui.Color
+	warning    ui.Color
+	success    ui.Color
 }
 
+// pal 按系统明暗外观提供容器、文字、交互与状态颜色
 func pal(c *ui.Context) palette {
-	t := c.Theme()
-	p := palette{dark: t.Dark}
-	if t.Dark {
-		p.bg = ui.Hex("#15161a")
-		p.surface = ui.Hex("#1f2127")
-		p.raised = ui.Hex("#262931")
-		p.hover = ui.Hex("#2b2f38")
-		p.border = ui.RGBA(255, 255, 255, 0.10)
-		p.hair = ui.RGBA(255, 255, 255, 0.07)
+	p := palette{}
+	if c.Theme().Dark {
+		p.bg = ui.Hex("#1c1c1e")
+		p.chrome = ui.Hex("#222225")
+		p.surface = ui.Hex("#242426")
+		p.hover = ui.Hex("#303034")
+		p.border = ui.Hex("#3c3c43")
 		p.shadow = ui.RGBA(0, 0, 0, 0.5)
-		p.text = ui.Hex("#e9ecf2")
-		p.muted = ui.Hex("#98a0ae")
-		p.faint = ui.Hex("#6d7482")
-		p.accent = t.Accent
-		p.accentText = t.AccentText
-		p.accentSoft = t.Accent.Alpha(0.18)
-		p.accentLine = t.Accent.Alpha(0.45)
+		p.text = ui.Hex("#f2f2f5")
+		p.muted = ui.Hex("#b0b0b9")
+		p.accent = ui.Hex("#6cb6ff")
+		p.accentText = ui.Hex("#101828")
+		p.accentSoft = ui.Hex("#24364d")
+		p.danger = ui.Hex("#ff8d87")
+		p.warning = ui.Hex("#e7ba71")
+		p.success = ui.Hex("#72d794")
 	} else {
-		p.bg = ui.Hex("#f3f4f7")
+		p.bg = ui.Hex("#f5f5f7")
+		p.chrome = ui.Hex("#ededf0")
 		p.surface = ui.Hex("#ffffff")
-		p.raised = ui.Hex("#ffffff")
-		p.hover = ui.Hex("#eef0f5")
-		p.border = ui.RGBA(18, 22, 40, 0.10)
-		p.hair = ui.RGBA(18, 22, 40, 0.07)
-		p.shadow = ui.RGBA(18, 22, 40, 0.16)
-		p.text = ui.Hex("#1a1d26")
-		p.muted = ui.Hex("#6b7280")
-		p.faint = ui.Hex("#9aa1ad")
-		p.accent = t.Accent
-		p.accentText = t.AccentText
-		p.accentSoft = t.Accent.Alpha(0.10)
-		p.accentLine = t.Accent.Alpha(0.40)
+		p.hover = ui.Hex("#eaecef")
+		p.border = ui.Hex("#dadae0")
+		p.shadow = ui.RGBA(0, 0, 0, 0.16)
+		p.text = ui.Hex("#202124")
+		p.muted = ui.Hex("#63666f")
+		p.accent = ui.Hex("#006adc")
+		p.accentText = ui.Hex("#ffffff")
+		p.accentSoft = ui.Hex("#e6effb")
+		p.danger = ui.Hex("#c73532")
+		p.warning = ui.Hex("#8a5c13")
+		p.success = ui.Hex("#247647")
 	}
+	p.raised, p.hair, p.faint = p.hover, p.border, p.muted
+	p.accentLine = p.accent
 	return p
 }
 
 // applyTheme 统一当前主题的控件配色、间距、圆角与焦点状态
 func (a *App) applyTheme(c *ui.Context) {
 	current := c.Theme()
+	p := pal(c)
 	t := *ui.LightTheme()
 	if current.Dark {
 		t = *ui.DarkTheme()
@@ -82,60 +86,15 @@ func (a *App) applyTheme(c *ui.Context) {
 	if t.FontSize <= 0 || t.FontSize > 14 {
 		t.FontSize = 12.5
 	}
-	if t.Dark {
-		t.Accent = ui.Hex("#7d8cff")
-		t.AccentHover = ui.Hex("#8e9bff")
-		t.AccentPressed = ui.Hex("#6f7ef2")
-		t.AccentText = ui.Hex("#0e1020")
-		t.Focus = ui.Hex("#7d8cff")
-	} else {
-		t.Accent = ui.Hex("#5468ff")
-		t.AccentHover = ui.Hex("#4356f5")
-		t.AccentPressed = ui.Hex("#3948e0")
-		t.AccentText = ui.Hex("#ffffff")
-		t.Focus = ui.Hex("#5468ff")
-	}
-	if a.settings.Theme == themeGlass {
-		c.SetTheme(&t)
-		p := a.palette(c)
-		t.Background, t.Surface = p.bg, p.surface
-		t.SurfaceHover, t.SurfacePressed = p.hover, p.accentSoft
-		t.Text, t.TextMuted, t.Border = p.text, p.muted, p.border
-		t.Selection, t.Focus = p.accentSoft, p.text.Alpha(0.45)
-		t.Scrollbar = p.muted.Alpha(0.6)
-	}
+	t.Background, t.Surface = p.bg, p.surface
+	t.SurfaceHover, t.SurfacePressed = p.hover, p.hover.Mix(p.text, 0.06)
+	t.Text, t.TextMuted, t.Border = p.text, p.muted, p.border
+	t.Accent, t.AccentText = p.accent, p.accentText
+	t.AccentHover, t.AccentPressed = p.accent.Mix(p.text, 0.08), p.accent.Mix(p.text, 0.16)
+	t.Selection, t.Focus = p.accentSoft, p.accent
+	t.Danger, t.Warning, t.Success = p.danger, p.warning, p.success
+	t.Scrollbar = p.muted.Alpha(0.6)
 	c.SetTheme(&t)
-}
-
-// kindColor is the accent color of a content type, used for the card's
-// color band, its icon and its preview.
-func kindColor(k types.Kind, dark bool) ui.Color {
-	if dark {
-		switch k {
-		case types.KindImage:
-			return ui.Hex("#3ecfba")
-		case types.KindLink:
-			return ui.Hex("#b98cff")
-		case types.KindColor:
-			return ui.Hex("#f0b95c")
-		case types.KindFile:
-			return ui.Hex("#93a4bf")
-		default:
-			return ui.Hex("#8b97ff")
-		}
-	}
-	switch k {
-	case types.KindImage:
-		return ui.Hex("#0f9d8b")
-	case types.KindLink:
-		return ui.Hex("#8b5cf6")
-	case types.KindColor:
-		return ui.Hex("#d98518")
-	case types.KindFile:
-		return ui.Hex("#64748b")
-	default:
-		return ui.Hex("#5468ff")
-	}
 }
 
 // kindLabel 按当前语言返回剪贴板内容类型名称

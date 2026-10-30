@@ -33,7 +33,7 @@ func (a *App) settingsUpdates(c *ui.Context, p palette) {
 				})
 				ui.Text(c, locales.UpdateMirrorHint()).FontSize(11).TextColor(p.muted)
 				if a.updateMirrorError != "" {
-					ui.Text(c, a.updateMirrorError).FontSize(11).TextColor(p.accent)
+					ui.Text(c, a.updateMirrorError).FontSize(11).TextColor(p.danger)
 				}
 			})
 			if !a.updatesEnabled {

@@ -31,28 +31,6 @@ func (a *App) panelRowHeight() float32 {
 	return panelRowHeight
 }
 
-// palette 按外观主题提供界面配色
-func (a *App) palette(c *ui.Context) palette {
-	p := pal(c)
-	if a.settings.Theme == themeGlass {
-		if p.dark {
-			p.bg = ui.Hex("#202328")
-			p.surface = ui.Hex("#282d34")
-			p.hover = ui.Hex("#303030")
-			p.accentSoft = ui.Hex("#393939")
-		} else {
-			p.bg = ui.Hex("#f6f7f9")
-			p.surface = ui.Hex("#edf1f5")
-			p.hover = ui.Hex("#ececec")
-			p.accentSoft = ui.Hex("#e6e6e6")
-		}
-		p.accentLine = p.border
-		p.raised = p.hover
-		p.faint = p.muted
-	}
-	return p
-}
-
 // themeBackground 为玻璃主题绘制中性底色并透出系统毛玻璃
 func (a *App) themeBackground(c *ui.Context, e ui.Element, p palette) {
 	if a.settings.Theme == themeGlass {
@@ -276,7 +254,7 @@ func (a *App) themeSelect(c *ui.Context, selected *string, options []string) ui.
 			for _, option := range options {
 				item := parts.Item(option).Padding(t.Space(1.5), t.Space(2.5)).Radius(t.Radius)
 				if item.Highlighted() {
-					item.Background(t.SurfacePressed)
+					item.Background(t.Selection)
 				}
 				item.Children(func() { ui.Text(c, option).SingleLine() })
 			}
