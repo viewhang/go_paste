@@ -10,6 +10,57 @@ import (
 	"gopaste/internal/types"
 )
 
+// TestListClickKeepsKeyboardNavigation 验证点击列表名称后保留焦点且方向键与空格仍操作当前记录
+func TestListClickKeepsKeyboardNavigation(t *testing.T) {
+	for _, form := range []int{formPanel, formBar} {
+		for _, theme := range []int{themeClassic, themeGlass} {
+			t.Run(fmt.Sprintf("form-%d-theme-%d", form, theme), func(t *testing.T) {
+				a := NewApp()
+				a.form, a.settings = form, types.DefaultSettings()
+				a.settings.Theme = theme
+				a.settings.CustomTabs = []types.Tab{{ID: "work", Name: "工作"}}
+				for i := range 3 {
+					a.records = append(a.records, &types.Record{ID: fmt.Sprint(i), Kind: types.KindText, Text: fmt.Sprintf("记录 %d", i), ListID: "work"})
+				}
+				initTestStore(t, a)
+				width, height, next, previous := panelWidth, panelHeight, ui.KeyDown, ui.KeyUp
+				if form == formBar {
+					width, height, next, previous = 1180, barHeight, ui.KeyRight, ui.KeyLeft
+				}
+				tt := ui.NewTester(a.view, width, height)
+				for _, name := range []string{"全部", "工作", "全部"} {
+					searchFocused := tt.Focused("搜索记录")
+					if err := tt.Click(name); err != nil {
+						t.Fatal(err)
+					}
+					if a.currentTab().Name != name {
+						t.Fatal("鼠标未切换到指定列表")
+					}
+					for _, key := range []ui.Key{next, next, previous} {
+						tt.Key(0, key)
+					}
+					if a.sel != 1 {
+						t.Fatalf("切换列表后方向键未选中第二条记录：%d", a.sel)
+					}
+					if tt.Focused("搜索记录") != searchFocused {
+						t.Error("点击列表名称改变了原有输入焦点")
+					}
+					tt.TypeKey(0, ui.KeySpace, " ")
+					if !a.preview || a.detail == nil || a.detail.ID != a.records[1].ID || a.sel != 1 || a.query != "" {
+						t.Fatalf("空格未预览当前记录：预览 %v，选择 %d，搜索 %q", a.preview, a.sel, a.query)
+					}
+					tt.Key(0, ui.KeyEscape)
+					if form == formPanel {
+						if err := tt.Click("记录 0"); err != nil {
+							t.Fatal(err)
+						}
+					}
+				}
+			})
+		}
+	}
+}
+
 // TestManualLists 验证两种面板中的列表创建、记录移动、编辑删除与持久化
 func TestManualLists(t *testing.T) {
 	for _, form := range []int{formBar, formPanel} {

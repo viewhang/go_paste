@@ -197,7 +197,7 @@ func (a *App) searchBox(c *ui.Context, p palette, compact bool) {
 	})
 }
 
-// tabsRow 显示列表分组与新增入口并在横向滚动区域外保留对称留白
+// tabsRow 显示列表分组与新增入口，切换分组时保留输入焦点与滚动区域外的对称留白
 func (a *App) tabsRow(c *ui.Context, p palette) {
 	tabs := a.tabs()
 	scroll := ui.ScrollHorizontal(c).Height(32).Margin(0, 8).Gap(4)
@@ -210,7 +210,7 @@ func (a *App) tabsRow(c *ui.Context, p palette) {
 			for i, tab := range tabs {
 				i, tab := i, tab
 				active := i == a.tab
-				chip := ui.Row(c).Key(tab.ID).Padding(4, 9).Radius(7).Gap(5).Focusable()
+				chip := ui.Row(c).Key(tab.ID).Padding(4, 9).Radius(7).Gap(5).Focusable().KeepFocus()
 				if a.settings.Theme == themeGlass {
 					chip.Height(28).Padding(4, 11).Radius(8)
 				}

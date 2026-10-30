@@ -35,7 +35,7 @@ func (a *App) barBody(c *ui.Context, p palette) {
 	})
 }
 
-// barHeader 显示长条的搜索、用户列表、新增入口与统一设置菜单
+// barHeader 显示长条的搜索、用户列表、新增入口与设置菜单，切换列表时保留输入焦点
 func (a *App) barHeader(c *ui.Context, p palette) {
 	ui.Row(c).Padding(9, 18).Gap(8).AlignItems(ui.Center).Background(p.chrome).Children(func() {
 		a.searchBox(c, p, true)
@@ -48,7 +48,7 @@ func (a *App) barHeader(c *ui.Context, p palette) {
 				for i, tab := range a.tabs() {
 					i, tab := i, tab
 					active := i == a.tab
-					chip := ui.Row(c).Key(tab.ID).Padding(3, 8).Radius(6).Focusable().Cursor(ui.CursorPointer)
+					chip := ui.Row(c).Key(tab.ID).Padding(3, 8).Radius(6).Focusable().KeepFocus().Cursor(ui.CursorPointer)
 					if active {
 						chip.Background(p.accentSoft)
 					} else if chip.Hovered() {
