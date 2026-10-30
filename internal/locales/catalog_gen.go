@@ -183,6 +183,14 @@ func (msgs Messages) PastePlain() string {
 	return Catalog.Format(msgs.locale, "pastePlain", nil)
 }
 
+// PasteAs 返回应用当前语言的粘贴格式菜单名称
+func PasteAs() string { return In(i18n.Locale()).PasteAs() }
+
+// PasteAs 返回指定语言的粘贴格式菜单名称
+func (msgs Messages) PasteAs() string {
+	return Catalog.Format(msgs.locale, "pasteAs", nil)
+}
+
 // PlainText says "纯文本"
 // in the language the app shows.
 func PlainText() string { return In(i18n.Locale()).PlainText() }
@@ -191,6 +199,78 @@ func PlainText() string { return In(i18n.Locale()).PlainText() }
 // in the language of msgs.
 func (msgs Messages) PlainText() string {
 	return Catalog.Format(msgs.locale, "plainText", nil)
+}
+
+// UpperCase 返回应用当前语言的大写转换选项名称
+func UpperCase() string { return In(i18n.Locale()).UpperCase() }
+
+// UpperCase 返回指定语言的大写转换选项名称
+func (msgs Messages) UpperCase() string {
+	return Catalog.Format(msgs.locale, "upperCase", nil)
+}
+
+// LowerCase 返回应用当前语言的小写转换选项名称
+func LowerCase() string { return In(i18n.Locale()).LowerCase() }
+
+// LowerCase 返回指定语言的小写转换选项名称
+func (msgs Messages) LowerCase() string {
+	return Catalog.Format(msgs.locale, "lowerCase", nil)
+}
+
+// PascalCase 返回应用当前语言的大驼峰转换选项名称
+func PascalCase() string { return In(i18n.Locale()).PascalCase() }
+
+// PascalCase 返回指定语言的大驼峰转换选项名称
+func (msgs Messages) PascalCase() string {
+	return Catalog.Format(msgs.locale, "pascalCase", nil)
+}
+
+// CamelCase 返回应用当前语言的小驼峰转换选项名称
+func CamelCase() string { return In(i18n.Locale()).CamelCase() }
+
+// CamelCase 返回指定语言的小驼峰转换选项名称
+func (msgs Messages) CamelCase() string {
+	return Catalog.Format(msgs.locale, "camelCase", nil)
+}
+
+// SnakeCase 返回应用当前语言的下划线转换选项名称
+func SnakeCase() string { return In(i18n.Locale()).SnakeCase() }
+
+// SnakeCase 返回指定语言的下划线转换选项名称
+func (msgs Messages) SnakeCase() string {
+	return Catalog.Format(msgs.locale, "snakeCase", nil)
+}
+
+// KebabCase 返回应用当前语言的短横线转换选项名称
+func KebabCase() string { return In(i18n.Locale()).KebabCase() }
+
+// KebabCase 返回指定语言的短横线转换选项名称
+func (msgs Messages) KebabCase() string {
+	return Catalog.Format(msgs.locale, "kebabCase", nil)
+}
+
+// FileNameWithExtension 返回应用当前语言的含后缀文件名选项名称
+func FileNameWithExtension() string { return In(i18n.Locale()).FileNameWithExtension() }
+
+// FileNameWithExtension 返回指定语言的含后缀文件名选项名称
+func (msgs Messages) FileNameWithExtension() string {
+	return Catalog.Format(msgs.locale, "fileNameWithExtension", nil)
+}
+
+// FileNameWithoutExtension 返回应用当前语言的不含后缀文件名选项名称
+func FileNameWithoutExtension() string { return In(i18n.Locale()).FileNameWithoutExtension() }
+
+// FileNameWithoutExtension 返回指定语言的不含后缀文件名选项名称
+func (msgs Messages) FileNameWithoutExtension() string {
+	return Catalog.Format(msgs.locale, "fileNameWithoutExtension", nil)
+}
+
+// FilePath 返回应用当前语言的文件路径选项名称
+func FilePath() string { return In(i18n.Locale()).FilePath() }
+
+// FilePath 返回指定语言的文件路径选项名称
+func (msgs Messages) FilePath() string {
+	return Catalog.Format(msgs.locale, "filePath", nil)
 }
 
 // Preview says "预览"
@@ -1089,16 +1169,6 @@ func (msgs Messages) OpenInBrowser() string {
 	return Catalog.Format(msgs.locale, "openInBrowser", nil)
 }
 
-// CopyURL says "复制链接"
-// in the language the app shows.
-func CopyURL() string { return In(i18n.Locale()).CopyURL() }
-
-// CopyURL says "复制链接"
-// in the language of msgs.
-func (msgs Messages) CopyURL() string {
-	return Catalog.Format(msgs.locale, "copyURL", nil)
-}
-
 // ExportImage says "导出图片"
 // in the language the app shows.
 func ExportImage() string { return In(i18n.Locale()).ExportImage() }
@@ -1107,26 +1177,6 @@ func ExportImage() string { return In(i18n.Locale()).ExportImage() }
 // in the language of msgs.
 func (msgs Messages) ExportImage() string {
 	return Catalog.Format(msgs.locale, "exportImage", nil)
-}
-
-// CopyAs says "复制为"
-// in the language the app shows.
-func CopyAs() string { return In(i18n.Locale()).CopyAs() }
-
-// CopyAs says "复制为"
-// in the language of msgs.
-func (msgs Messages) CopyAs() string {
-	return Catalog.Format(msgs.locale, "copyAs", nil)
-}
-
-// CopyFilePath says "复制文件路径"
-// in the language the app shows.
-func CopyFilePath() string { return In(i18n.Locale()).CopyFilePath() }
-
-// CopyFilePath says "复制文件路径"
-// in the language of msgs.
-func (msgs Messages) CopyFilePath() string {
-	return Catalog.Format(msgs.locale, "copyFilePath", nil)
 }
 
 // OlderRecordsHint says "用搜索找更早的内容"

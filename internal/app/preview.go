@@ -148,32 +148,28 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 				if a.themePrimaryButton(c, locales.OpenInBrowser()).Clicked() {
 					a.later(func() { _ = mygo.Shell.OpenExternal(r.URL) })
 				}
-				if a.themeButton(c, locales.CopyURL()).Clicked() {
-					a.later(func() { a.copyText(r.Text) })
-				}
 			})
 		})
 	case types.KindColor:
 		body.Padding(12).Gap(8).Children(func() {
 			ui.Box(c).Grow(1).Radius(10).Background(ui.Hex(r.Color)).
 				InsetShadow(0, 0, 0, 1, ui.RGBA(0, 0, 0, 0.18))
-			for _, f := range []string{"hex", "rgb", "hsl"} {
-				f := f
-				val := ColorString(r.Color, f)
+			for _, option := range colorPasteFormats {
+				val := ColorString(r.Color, strings.ToLower(option.label))
 				rowEl := ui.Row(c).Padding(7, 10).Radius(7).Gap(10).AlignItems(ui.Center).
-					Focusable().Cursor(ui.CursorPointer)
+					Focusable().Cursor(ui.CursorPointer).Tooltip(locales.PasteAs() + " " + option.label)
 				rowEl.Border(1, p.border)
 				if rowEl.Hovered() {
 					rowEl.Background(p.hover)
 				}
 				rowEl.Children(func() {
-					ui.Text(c, strings.ToUpper(f)).FontSize(9.5).Bold().
+					ui.Text(c, option.label).FontSize(9.5).Bold().
 						TextColor(kindColor(types.KindColor, p.dark)).Width(30)
 					ui.Text(c, val).FontSize(12).TextColor(p.text).Grow(1).SingleLine()
-					ui.Icon(c, icoCopy).Size(11, 11).TextColor(p.faint)
+					ui.Icon(c, icoClipboard).Size(11, 11).TextColor(p.faint)
 				})
 				if rowEl.Clicked() {
-					a.later(func() { a.copyText(val) })
+					a.later(func() { a.pasteAs(r, option.format) })
 				}
 			}
 		})
@@ -193,9 +189,7 @@ func (a *App) previewBody(c *ui.Context, p palette, r *types.Record) {
 					if m.Item(locales.ShowInFolder()).Chosen() {
 						a.later(func() { mygo.Shell.ShowItemInFolder(f.Path) })
 					}
-					if m.Item(locales.CopyFilePath()).Chosen() {
-						a.later(func() { a.copyText(f.Path) })
-					}
+					a.pasteAsMenu(m, &types.Record{ID: r.ID, Kind: types.KindFile, Files: []types.FileRef{f}})
 				})
 				rowEl.Children(func() {
 					if b := a.fileIcon(f.Path); b != nil {

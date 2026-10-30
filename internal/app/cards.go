@@ -251,17 +251,12 @@ func barBody(c *ui.Context, a *App, r *types.Record, p palette) {
 
 // ---- menus ----
 
-// cardMenu 显示记录操作、普通列表移动入口与自定义快捷键
+// cardMenu 显示记录操作、粘贴格式、普通列表移动入口与自定义快捷键
 func (a *App) cardMenu(c *ui.Context, m *ui.Menu, r *types.Record) {
 	if m.Item(locales.Paste()).Shortcut(a.shortcutKeys("paste")).Chosen() {
 		a.later(func() { a.paste(r, false) })
 	}
-	if m.Item(locales.PastePlain()).Shortcut(a.shortcutKeys("pastePlain")).Chosen() {
-		a.later(func() { a.paste(r, true) })
-	}
-	if m.Item(locales.Copy()).Shortcut(a.shortcutKeys("copy")).Chosen() {
-		a.later(func() { a.copy(r, false) })
-	}
+	a.pasteAsMenu(m, r)
 	m.Separator()
 	m.Submenu(locales.MoveTo(), func(s *ui.Menu) {
 		if s.Item(locales.All()).Checked(r.ListID == "").Disabled(r.ListID == "").Chosen() {
@@ -285,26 +280,10 @@ func (a *App) cardMenu(c *ui.Context, m *ui.Menu, r *types.Record) {
 				}
 			})
 		}
-		if m.Item(locales.CopyURL()).Chosen() {
-			a.later(func() {
-				if full := a.fullRecord(r); full != nil {
-					a.copyText(full.Text)
-				}
-			})
-		}
 	case types.KindImage:
 		if m.Item(locales.ExportImage()).Chosen() {
 			a.later(func() { a.exportImage(r) })
 		}
-	case types.KindColor:
-		m.Submenu(locales.CopyAs(), func(s *ui.Menu) {
-			for _, f := range []string{"hex", "rgb", "hsl"} {
-				f := f
-				if s.Item(strings.ToUpper(f)).Chosen() {
-					a.later(func() { a.copyText(ColorString(r.Color, f)) })
-				}
-			}
-		})
 	case types.KindFile:
 		if recordFileCount(r) > 0 {
 			if m.Item(locales.Open()).Chosen() {
@@ -312,9 +291,6 @@ func (a *App) cardMenu(c *ui.Context, m *ui.Menu, r *types.Record) {
 			}
 			if m.Item(locales.ShowInFolder()).Chosen() {
 				a.later(func() { mygo.Shell.ShowItemInFolder(r.Files[0].Path) })
-			}
-			if m.Item(locales.CopyFilePath()).Chosen() {
-				a.later(func() { a.copyText(r.Files[0].Path) })
 			}
 		}
 	}
