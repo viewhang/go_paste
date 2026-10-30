@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
 
@@ -50,77 +51,110 @@ const (
 	pasteColorHSL
 )
 
-// colorPasteFormats 定义颜色粘贴的格式与界面名称
-var colorPasteFormats = []struct {
+// pasteOption 定义粘贴格式与菜单名称，空名称表示分隔线
+type pasteOption struct {
 	format pasteFormat
 	label  string
-}{
+}
+
+// colorPasteFormats 定义颜色粘贴的格式与界面名称
+var colorPasteFormats = []pasteOption{
 	{pasteColorHex, "HEX"},
 	{pasteColorRGB, "RGB"},
 	{pasteColorHSL, "HSL"},
 }
 
-// pasteAsMenu 按记录类型显示可用的粘贴格式并保留纯文本快捷键
-func (a *App) pasteAsMenu(m *ui.Menu, rec *types.Record) {
+// pasteOptions 按记录类型提供右键菜单与快捷键共用的粘贴格式
+func pasteOptions(rec *types.Record) []pasteOption {
 	image := markdownImageRecord(rec)
 	files := rec.Kind == types.KindImage || rec.Kind == types.KindFile && recordFileCount(rec) > 0
 	if !files && rec.Kind != types.KindText && rec.Kind != types.KindLink && rec.Kind != types.KindColor {
+		return nil
+	}
+	var options []pasteOption
+	if !files {
+		options = append(options, pasteOption{pastePlainText, locales.PlainText()})
+	}
+	if image || rec.Kind == types.KindLink {
+		options = append(options, pasteOption{pasteMarkdown, "Markdown"})
+	}
+	if files {
+		if image {
+			options = append(options, pasteOption{})
+		}
+		options = append(options,
+			pasteOption{pasteFileName, locales.FileNameWithExtension()},
+			pasteOption{pasteFileStem, locales.FileNameWithoutExtension()},
+			pasteOption{pasteFilePath, locales.FilePath()},
+		)
+	}
+	if rec.Kind == types.KindText {
+		options = append(options, pasteOption{},
+			pasteOption{pasteUpperCase, locales.UpperCase()},
+			pasteOption{pasteLowerCase, locales.LowerCase()},
+			pasteOption{pastePascalCase, locales.PascalCase()},
+			pasteOption{pasteCamelCase, locales.CamelCase()},
+			pasteOption{pasteSnakeCase, locales.SnakeCase()},
+			pasteOption{pasteKebabCase, locales.KebabCase()},
+		)
+	}
+	if rec.Kind == types.KindColor {
+		options = append(options, pasteOption{})
+		options = append(options, colorPasteFormats...)
+	}
+	return options
+}
+
+// pasteAsMenu 按记录类型显示粘贴格式子菜单并标注打开菜单的快捷键
+func (a *App) pasteAsMenu(m *ui.Menu, rec *types.Record) {
+	options := pasteOptions(rec)
+	if len(options) == 0 {
 		return
 	}
 	m.Submenu(locales.PasteAs(), func(s *ui.Menu) {
-		if !files {
-			if s.Item(locales.PlainText()).Shortcut(a.shortcutKeys("pastePlain")).Chosen() {
-				a.later(func() { a.pasteAs(rec, pastePlainText) })
-			}
-		}
-		if image || rec.Kind == types.KindLink {
-			if s.Item("Markdown").Chosen() {
-				a.later(func() { a.pasteAs(rec, pasteMarkdown) })
-			}
-		}
-		if files {
-			if image {
+		for _, option := range options {
+			if option.label == "" {
 				s.Separator()
-			}
-			for _, option := range []struct {
-				format pasteFormat
-				label  string
-			}{
-				{pasteFileName, locales.FileNameWithExtension()},
-				{pasteFileStem, locales.FileNameWithoutExtension()},
-				{pasteFilePath, locales.FilePath()},
-			} {
-				if s.Item(option.label).Chosen() {
-					a.later(func() { a.pasteAs(rec, option.format) })
-				}
+			} else if s.Item(option.label).Chosen() {
+				a.later(func() { a.pasteAs(rec, option.format) })
 			}
 		}
-		if rec.Kind == types.KindText {
-			s.Separator()
-			for _, option := range []struct {
-				format pasteFormat
-				label  string
-			}{
-				{pasteUpperCase, locales.UpperCase()},
-				{pasteLowerCase, locales.LowerCase()},
-				{pastePascalCase, locales.PascalCase()},
-				{pasteCamelCase, locales.CamelCase()},
-				{pasteSnakeCase, locales.SnakeCase()},
-				{pasteKebabCase, locales.KebabCase()},
-			} {
-				if s.Item(option.label).Chosen() {
-					a.later(func() { a.pasteAs(rec, option.format) })
+	}).Shortcut(a.shortcutKeys("pasteAs"))
+}
+
+// openPasteAs 在当前记录或预览区域右侧打开原生粘贴格式菜单并在选择后执行粘贴
+func (a *App) openPasteAs(c *ui.Context) {
+	rec := a.selected()
+	if a.preview {
+		rec = a.detail
+	}
+	if rec == nil {
+		return
+	}
+	options := pasteOptions(rec)
+	if len(options) == 0 {
+		return
+	}
+	bounds := a.pasteAnchor.Bounds(c)
+	a.later(func() {
+		go mygo.RunOnMain(func() {
+			var chosen *pasteOption
+			items := make([]*mygo.MenuItem, 0, len(options))
+			for _, option := range options {
+				if option.label == "" {
+					items = append(items, mygo.Separator())
+				} else {
+					items = append(items, &mygo.MenuItem{
+						Label: option.label,
+						Click: func(*mygo.MenuItem, *mygo.Window) { chosen = &option },
+					})
 				}
 			}
-		}
-		if rec.Kind == types.KindColor {
-			s.Separator()
-			for _, option := range colorPasteFormats {
-				if s.Item(option.label).Chosen() {
-					a.later(func() { a.pasteAs(rec, option.format) })
-				}
+			mygo.NewMenu(items).PopupAt(a.win, int(bounds.X+bounds.W), int(bounds.Y))
+			if chosen != nil {
+				a.pasteAs(rec, chosen.format)
 			}
-		}
+		})
 	})
 }
 

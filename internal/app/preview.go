@@ -19,7 +19,7 @@ func (a *App) previewPane(c *ui.Context, p palette) {
 	if rec == nil {
 		rec = a.selected()
 	}
-	box := ui.Column(c)
+	box := ui.Column(c).Bind(&a.pasteAnchor)
 	if a.form == formBar {
 		box.Height(barPreview)
 	} else {

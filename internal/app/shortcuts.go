@@ -21,7 +21,7 @@ var shortcutActions = []struct {
 }{
 	{"toggle", locales.ShortcutToggle, types.DefaultHotkey},
 	{"paste", locales.Paste, "Enter"},
-	{"pastePlain", locales.PastePlain, "Shift+Enter"},
+	{"pasteAs", locales.PasteAs, "Shift+Enter"},
 	{"preview", locales.Preview, "Space"},
 	{"copy", locales.ShortcutCopy, "CmdOrCtrl+C"},
 	{"delete", locales.DeleteRecord, "Backspace"},

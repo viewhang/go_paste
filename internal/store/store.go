@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io/fs"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -99,8 +100,15 @@ func (s *Store) Settings() types.Settings {
 	return cp
 }
 
-// normalizeSettings 补齐基本偏好并为旧设置一次性加入默认排除应用
+// normalizeSettings 补齐基本偏好、初始化默认排除应用并迁移粘贴格式快捷键
 func normalizeSettings(st *types.Settings) {
+	if acc, ok := st.Shortcuts["pastePlain"]; ok {
+		st.Shortcuts = maps.Clone(st.Shortcuts)
+		if st.Shortcuts["pasteAs"] == "" {
+			st.Shortcuts["pasteAs"] = acc
+		}
+		delete(st.Shortcuts, "pastePlain")
+	}
 	defaults := types.DefaultSettings()
 	if st.MaxRecords <= 0 {
 		st.MaxRecords = defaults.MaxRecords

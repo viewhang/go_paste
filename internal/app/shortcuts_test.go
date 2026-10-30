@@ -294,3 +294,74 @@ func TestShortcutReservedKeys(t *testing.T) {
 		}
 	}
 }
+
+// TestPasteAsShortcut 验证默认与自定义按键在两种面板及预览中只打开粘贴格式菜单
+func TestPasteAsShortcut(t *testing.T) {
+	for _, form := range []int{formBar, formPanel} {
+		for _, theme := range []int{themeClassic, themeGlass} {
+			a := NewApp()
+			a.form, a.settings = form, types.DefaultSettings()
+			a.settings.Theme = theme
+			a.records = []*types.Record{
+				{ID: "first", Kind: types.KindText, Text: "needle first"},
+				{ID: "second", Kind: types.KindText, Text: "needle second"},
+			}
+			initTestStore(t, a)
+			if mods, key := a.shortcutKeys("pasteAs"); mods != ui.Shift || key != ui.KeyEnter {
+				t.Fatal("粘贴为默认快捷键应为 Shift+Enter")
+			}
+			if _, key := a.shortcutKeys("pastePlain"); key != ui.KeyUnknown {
+				t.Fatal("仍保留独立的纯文本快捷键")
+			}
+			tt := ui.NewTester(func(c *ui.Context) {
+				a.applyTheme(c)
+				a.acted = false
+				a.vis = a.filtered()
+				a.clampSel()
+				a.keyboard(c)
+				if form == formBar {
+					a.barView(c, pal(c))
+				} else {
+					a.panelView(c, pal(c))
+				}
+			}, 1180, panelHeight)
+			tt.Type("needle")
+			a.sel = 1
+			tt.Frame()
+			for _, preview := range []bool{false, true} {
+				if preview {
+					a.openPreview()
+					tt.Frame()
+				}
+				tt.Key(ui.Shift, ui.KeyEnter)
+				if len(a.pending) != 1 || a.sel != 1 || a.query != "needle" || a.preview != preview {
+					t.Fatalf("形态 %d 主题 %d 预览 %v 的快捷键未打开唯一菜单或改变记录状态：%d %d %q", form, theme, preview, len(a.pending), a.sel, a.query)
+				}
+				a.pending = nil
+			}
+			a.closePreview()
+			tt.Frame()
+			if err := a.setShortcut("pasteAs", "CmdOrCtrl+Shift+P"); err != nil {
+				t.Fatal(err)
+			}
+			tt.Key(ui.Shift, ui.KeyEnter)
+			if len(a.pending) != 0 {
+				t.Fatal("修改快捷键后仍响应旧按键")
+			}
+			tt.Key(ui.Cmd|ui.Shift, ui.KeyP)
+			if len(a.pending) != 1 || a.st.Settings().Shortcuts["pasteAs"] != "CmdOrCtrl+Shift+P" {
+				t.Fatal("自定义粘贴为快捷键未生效或未保存")
+			}
+			a.pending = nil
+			tt.Type(" missing")
+			tt.Key(ui.Cmd|ui.Shift, ui.KeyP)
+			if len(a.pending) != 0 {
+				t.Fatal("无匹配记录时不应打开菜单")
+			}
+			recorder := ui.NewTester(func(c *ui.Context) { a.settingsShortcuts(c, pal(c)) }, 560, 700)
+			if !recorder.HasText("粘贴为") || recorder.HasText("粘贴为纯文本") {
+				t.Fatal("设置页仍显示旧的纯文本快捷键")
+			}
+		}
+	}
+}

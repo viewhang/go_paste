@@ -81,6 +81,8 @@ type App struct {
 	search ui.Handle
 	list   ui.ListState
 	strip  ui.ScrollState
+	// pasteAnchor 定位当前记录或预览区域的粘贴格式菜单
+	pasteAnchor ui.Handle
 	// listScroll 保存浮动面板列表的滚动位置
 	listScroll ui.ScrollState
 

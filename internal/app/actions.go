@@ -30,8 +30,8 @@ func (a *App) keyboard(c *ui.Context) {
 		if c.Shortcut(0, ui.KeyEscape) && a.once() {
 			a.closePreview()
 		}
-		if a.shortcutPressed(c, "pastePlain") && a.once() {
-			a.pasteSelected(true)
+		if a.shortcutPressed(c, "pasteAs") && a.once() {
+			a.openPasteAs(c)
 		} else if a.shortcutPressed(c, "paste") && a.once() {
 			a.pasteSelected(false)
 		}
@@ -72,8 +72,8 @@ func (a *App) keyboard(c *ui.Context) {
 	if a.settings.Shortcuts["preview"] == "" && c.Shortcut(ui.Cmd, ui.KeyY) && a.once() {
 		a.openPreview()
 	}
-	if a.shortcutPressed(c, "pastePlain") && a.once() {
-		a.pasteSelected(true)
+	if a.shortcutPressed(c, "pasteAs") && a.once() {
+		a.openPasteAs(c)
 	} else if a.shortcutPressed(c, "paste") && a.once() {
 		a.pasteSelected(false)
 	}

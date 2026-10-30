@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"math"
 	"reflect"
 	"testing"
@@ -136,6 +137,61 @@ func TestBarResizeLayout(t *testing.T) {
 		wantWidth := float32(cardHeight) * cardW / cardH
 		if !ok || !nextOK || math.Abs(float64(next.X-first.X-cardGap-wantWidth)) > 0.1 {
 			t.Fatalf("窗口高度 %d 的卡片宽度未等比调整：得到 %v，预期 %v", height, next.X-first.X-cardGap, wantWidth)
+		}
+	}
+}
+
+// TestPasteAsAnchor 验证粘贴格式菜单锚点跟随选中记录、滚动、窗口尺寸及预览区域
+func TestPasteAsAnchor(t *testing.T) {
+	for _, form := range []int{formBar, formPanel} {
+		for _, theme := range []int{themeClassic, themeGlass} {
+			a := NewApp()
+			a.form, a.settings = form, types.DefaultSettings()
+			a.settings.Theme = theme
+			for i := range 20 {
+				text := fmt.Sprintf("anchor-record-%02d", i)
+				a.records = append(a.records, &types.Record{ID: text, Kind: types.KindText, Text: text})
+			}
+			initTestStore(t, a)
+			var ctx *ui.Context
+			tt := ui.NewTester(func(c *ui.Context) { ctx = c; a.view(c) }, 1180, panelHeight)
+			previous := a.pasteAnchor.Bounds(ctx)
+			next := ui.KeyDown
+			if form == formBar {
+				next = ui.KeyRight
+			}
+			for i := 1; i <= 17; i++ {
+				tt.Key(0, next)
+				anchor := a.pasteAnchor.Bounds(ctx)
+				text, ok := tt.Find(a.selected().Text)
+				if a.sel != i || !ok || anchor.W <= 0 || anchor.H <= 0 ||
+					text.X < anchor.X || text.Y < anchor.Y || text.X+text.W > anchor.X+anchor.W+1 || text.Y+text.H > anchor.Y+anchor.H+1 {
+					t.Fatalf("形态 %d 主题 %d 第 %d 项锚点未跟随记录：锚点 %+v，文本 %+v", form, theme, i, anchor, text)
+				}
+				if i == 1 && anchor == previous {
+					t.Fatal("切换记录后菜单锚点仍停留在原位置")
+				}
+				if anchor.X < 0 || anchor.Y < 0 || anchor.X+anchor.W > 1181 || anchor.Y+anchor.H > panelHeight+1 {
+					t.Fatalf("滚动后菜单锚点未使用可见记录的位置：%+v", anchor)
+				}
+			}
+			tt.SetSize(1280, panelHeight+40)
+			anchor := a.pasteAnchor.Bounds(ctx)
+			text, ok := tt.Find(a.selected().Text)
+			if !ok || text.X < anchor.X || text.Y < anchor.Y || text.X > anchor.X+anchor.W || text.Y > anchor.Y+anchor.H {
+				t.Fatalf("窗口缩放后锚点未跟随选中记录：%+v，%+v", anchor, text)
+			}
+			a.openPreview()
+			tt.Frame()
+			preview := a.pasteAnchor.Bounds(ctx)
+			if preview == anchor || preview.W <= 0 || preview.H <= 0 || form == formBar && preview.H != barPreview {
+				t.Fatalf("预览菜单仍使用卡片位置：%+v", preview)
+			}
+			a.closePreview()
+			tt.Frame()
+			if a.pasteAnchor.Bounds(ctx) == preview {
+				t.Fatal("关闭预览后未恢复记录的菜单锚点")
+			}
 		}
 	}
 }

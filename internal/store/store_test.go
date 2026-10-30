@@ -237,3 +237,41 @@ func TestCollectGarbage(t *testing.T) {
 		t.Fatal("the orphan is still on disk")
 	}
 }
+
+// TestPasteAsShortcutMigration 验证旧纯文本快捷键迁移后保留自定义按键且不改写输入设置
+func TestPasteAsShortcutMigration(t *testing.T) {
+	for _, current := range []string{"", "Alt+P"} {
+		s, err := Open(t.TempDir())
+		if err != nil {
+			t.Fatal(err)
+		}
+		settings := s.Settings()
+		settings.Shortcuts = map[string]string{"pastePlain": "Ctrl+Shift+P", "search": "Alt+F"}
+		want := "Ctrl+Shift+P"
+		if current != "" {
+			settings.Shortcuts["pasteAs"] = current
+			want = current
+		}
+		if err := s.SetSettings(settings); err != nil {
+			t.Fatal(err)
+		}
+		if settings.Shortcuts["pastePlain"] != "Ctrl+Shift+P" {
+			t.Fatal("迁移改写了传入的设置")
+		}
+		dir := s.Dir()
+		if err := s.Close(); err != nil {
+			t.Fatal(err)
+		}
+		s, err = Open(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := s.Settings().Shortcuts
+		if got["pasteAs"] != want || got["pastePlain"] != "" || got["search"] != "Alt+F" {
+			t.Fatalf("粘贴为快捷键迁移或持久化失败：%v", got)
+		}
+		if err := s.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

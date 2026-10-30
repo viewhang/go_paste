@@ -172,8 +172,8 @@ func (a *App) searchBox(c *ui.Context, p palette, compact bool) {
 		}
 		if field.Submitted() && a.once() {
 			mods := c.Modifiers()
-			if m, k := a.shortcutKeys("pastePlain"); k == ui.KeyEnter && m == mods {
-				a.pasteSelected(true)
+			if m, k := a.shortcutKeys("pasteAs"); k == ui.KeyEnter && m == mods {
+				a.openPasteAs(c)
 			} else if m, k := a.shortcutKeys("paste"); k == ui.KeyEnter && m == mods {
 				a.pasteSelected(false)
 			}

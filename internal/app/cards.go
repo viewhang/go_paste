@@ -76,6 +76,9 @@ func (a *App) panelRow(c *ui.Context, r *types.Record, i int) {
 	p := pal(c)
 	sel := i == a.sel
 	row := ui.Row(c).Height(a.panelRowHeight()).Padding(9, 10).Gap(10).Radius(10).AlignItems(ui.Center)
+	if sel {
+		row.Bind(&a.pasteAnchor)
+	}
 	row.Focusable().Cursor(ui.CursorPointer)
 	background, border := p.surface, p.hair
 	iconSize, titleSize, timeSize := float32(40), float32(12.5), float32(10)
@@ -132,6 +135,9 @@ func (a *App) barCard(c *ui.Context, r *types.Record, i int) {
 	_, height := c.Size()
 	width, cardHeight := a.barCardSize(height)
 	card := ui.Column(c).Size(width, cardHeight).Radius(12).Clip().Focusable()
+	if sel && !a.preview {
+		card.Bind(&a.pasteAnchor)
+	}
 	card.Border(2, p.border)
 	if a.settings.Theme == themeGlass {
 		card.BorderWidth(1)
